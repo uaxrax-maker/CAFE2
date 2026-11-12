@@ -304,7 +304,6 @@
     </div>
 
     <script>
-        // الرابط الافتراضي الدائم لقاعدة بياناتك في Firebase
         const FIREBASE_DEFAULT_URL = "https://cafe-c0fd0-default-rtdb.firebaseio.com";
 
         const defaultData = {
@@ -449,9 +448,7 @@
                             }
                         }
                     }
-                } catch (e) {
-                    console.log("Using cached menu");
-                }
+                } catch (e) {}
             }
             document.getElementById('cust-cafe-name').innerText = appData.cafeName;
             document.getElementById('cust-cafe-sub').innerText = appData.cafeSub;
@@ -480,7 +477,10 @@
             }).join('');
 
             const total = customerCart.reduce((s, i) => s + (i.price * i.qty), 0);
-            document.getElementById('cust-cart-total').innerText = total.toFixed(3) + " ر.ع";
+            const totalEl = document.getElementById('cust-cart-total');
+            if (totalEl) {
+                totalEl.innerText = total.toFixed(3) + " ر.ع";
+            }
         }
 
         function updateCustCart(id, delta) {
@@ -502,7 +502,6 @@
 
             const btn = document.getElementById('cust-submit-btn');
             btn.disabled = true;
-            btn.innerHTML = `<span>جاري إرسال الطلب للكاشير...</span>`;
 
             const orderPayload = {
                 items: customerCart,
@@ -526,10 +525,13 @@
                 alert("✅ تم استلام طلبك لدى الكاشير بنجاح! جاري تحضيره ☕");
             } catch (e) {
                 alert("تعذر إرسال الطلب:\n" + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>إرسال الطلب للكاشير</span><span id="cust-cart-total" class="text-amber-400">0.000 ر.ع</span>`;
+                const total = customerCart.reduce((s, i) => s + (i.price * i.qty), 0);
+                const totalEl = document.getElementById('cust-cart-total');
+                if (totalEl) totalEl.innerText = total.toFixed(3) + " ر.ع";
             }
-
-            btn.disabled = false;
-            btn.innerHTML = `<span>إرسال الطلب للكاشير</span><span id="cust-cart-total">0.000 ر.ع</span>`;
         }
 
         function updateUI() {
