@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>نظام الكافيه السحابي المتكامل - POS & QR</title>
+    <title>سمط كافيه - POS & QR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Tajawal', sans-serif; }
         .active-tab { background-color: #d97706 !important; color: #ffffff !important; }
         .active-cat { background-color: #d97706 !important; color: white !important; }
         .safe-bottom { padding-bottom: max(1.2rem, env(safe-area-inset-bottom)); }
@@ -29,11 +29,16 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-100 text-slate-800">
+<body id="main-body" class="min-h-screen flex flex-col bg-slate-100 text-slate-800 transition-colors duration-300">
 
     <!-- ==================== 1. واجهة الزبون عبر الباركود ==================== -->
-    <div id="customer-qr-app" class="hidden min-h-screen flex flex-col bg-slate-50 max-w-lg mx-auto w-full shadow-2xl relative">
-        <header class="bg-amber-700 text-white p-4 text-center sticky top-0 z-20 shadow">
+    <div id="customer-qr-app" class="hidden min-h-screen flex flex-col max-w-lg mx-auto w-full shadow-2xl relative transition-all duration-300">
+        
+        <!-- ترويسة الزبون مع الصورة العلوية المخصصة -->
+        <header id="cust-header-box" class="bg-amber-700 text-white p-4 text-center sticky top-0 z-20 shadow">
+            <div id="cust-logo-wrapper" class="hidden mb-2 justify-center">
+                <img id="cust-header-img" src="" alt="شعار الكافيه" class="h-16 w-auto object-contain mx-auto rounded-lg">
+            </div>
             <h1 id="cust-cafe-name" class="text-xl font-black">سمط كافيه</h1>
             <p id="cust-cafe-sub" class="text-xs text-amber-100 mt-0.5">أهلاً بك، اطلب وتتبع قهوتك مباشرة</p>
             <div class="mt-2 inline-flex items-center gap-2 bg-amber-900/60 text-white text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
@@ -43,7 +48,7 @@
         </header>
 
         <!-- كرت تتبع حالة الطلب المباشر للزبون -->
-        <div id="cust-order-status-card" class="hidden m-4 p-4 rounded-2xl bg-white border border-amber-200 shadow-md">
+        <div id="cust-order-status-card" class="hidden m-4 p-4 rounded-2xl bg-white/90 backdrop-blur border border-amber-200 shadow-md">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2">
                     <span class="relative flex h-3 w-3">
@@ -55,10 +60,10 @@
                 <span id="cust-status-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700">تم الاستلام</span>
             </div>
             <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-                <span>وقت الإرسال: <b id="cust-order-time" class="text-slate-700 font-mono">--:--</b></span>
+                <span>رقم الطلب: <b id="cust-order-id-display" class="text-slate-800 font-mono">#0</b></span>
                 <span>المجموع: <b id="cust-order-summary-total" class="text-amber-700 font-bold font-mono">0.000 ر.ع</b></span>
             </div>
-            <div id="cust-order-items-preview" class="mt-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl space-y-1"></div>
+            <div id="cust-order-items-preview" class="mt-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-xl space-y-1"></div>
         </div>
 
         <!-- قائمة المنيو -->
@@ -86,8 +91,9 @@
     <div id="cashier-system-app" class="flex-1 flex flex-col min-h-screen">
         <header id="cashier-header" class="bg-slate-900 text-white px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3 shadow-md sticky top-0 z-40">
             <div class="flex items-center gap-3">
-                <div class="bg-amber-600 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow">
-                    <i class="fa-solid fa-mug-hot text-lg"></i>
+                <div id="cashier-logo-box" class="bg-amber-600 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow overflow-hidden">
+                    <img id="cashier-header-img" src="" class="hidden w-full h-full object-cover">
+                    <i id="cashier-header-icon" class="fa-solid fa-mug-hot text-lg"></i>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
@@ -114,7 +120,7 @@
                     <i class="fa-solid fa-receipt"></i> المبيعات والتقارير
                 </button>
                 <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
-                    <i class="fa-solid fa-gear"></i> الإعدادات والخيارات
+                    <i class="fa-solid fa-gear"></i> الإعدادات والمظهر
                 </button>
             </nav>
         </header>
@@ -232,18 +238,18 @@
 
                     <div class="bg-white rounded-2xl shadow overflow-hidden">
                         <div class="p-4 border-b flex justify-between items-center">
-                            <h3 class="font-bold text-sm text-slate-800">سجل الفواتير المتزامن سحابياً</h3>
+                            <h3 class="font-bold text-sm text-slate-800">سجل الفواتير (ترقيم تسلسلي يومي)</h3>
                             <button onclick="clearSalesHistory()" class="text-xs text-red-500 hover:underline">تصفير السجل</button>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-right text-xs">
                                 <thead class="bg-slate-50 text-slate-600 font-bold">
                                     <tr>
-                                        <th class="p-3">رقم الفاتورة</th>
+                                        <th class="p-3">رقم الطلب</th>
                                         <th class="p-3">النوع / الطاولة</th>
                                         <th class="p-3">طريقة الدفع</th>
                                         <th class="p-3">الأصناف والتخصيص</th>
-                                        <th class="p-3">الوقت</th>
+                                        <th class="p-3">الوقت والتاريخ</th>
                                         <th class="p-3">المجموع</th>
                                         <th class="p-3 text-center">إجراء</th>
                                     </tr>
@@ -255,10 +261,51 @@
                 </div>
             </section>
 
-            <!-- تبويب 5: الإعدادات، المنيو، وتخصيص الخيارات -->
+            <!-- تبويب 5: الإعدادات، المظهر، والمنيو -->
             <section id="view-settings" class="h-full p-4 lg:p-6 overflow-y-auto hidden">
                 <div class="max-w-4xl mx-auto space-y-6 pb-16">
                     
+                    <!-- ==================== قسم تخصيص المظهر والخلفيات (جديد) ==================== -->
+                    <div class="bg-white p-5 rounded-2xl shadow space-y-4">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-palette text-amber-600"></i> تخصيص المظهر والخلفيات والصور العلوية
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- مظهر شاشة الزبون -->
+                            <div class="p-3.5 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-amber-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-mobile-screen"></i> واجهة هاتف الزبون
+                                </span>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">لون خلفية صفحة الزبون</label>
+                                    <input type="color" id="theme-cust-bg" class="w-full h-8 rounded border p-1 bg-white cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">رابط صورة/شعار الترويسة في الأعلى</label>
+                                    <input type="url" id="theme-cust-img" placeholder="https://example.com/logo.png" class="w-full p-2 text-xs border rounded-lg bg-white">
+                                </div>
+                            </div>
+
+                            <!-- مظهر شاشة الكاشير -->
+                            <div class="p-3.5 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-desktop"></i> واجهة الكاشير الأساسية
+                                </span>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">لون خلفية شاشة الكاشير</label>
+                                    <input type="color" id="theme-cashier-bg" class="w-full h-8 rounded border p-1 bg-white cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">رابط صورة اللوجو في الأعلى</label>
+                                    <input type="url" id="theme-cashier-img" placeholder="https://example.com/icon.png" class="w-full p-2 text-xs border rounded-lg bg-white">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="saveThemeSettings()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition">
+                            حفظ وتطبيق المظهر سحابياً
+                        </button>
+                    </div>
+
                     <!-- إعدادات الكافيه -->
                     <div class="bg-white p-5 rounded-2xl shadow">
                         <h3 class="font-black text-slate-800 mb-3 text-sm flex items-center gap-2">
@@ -283,8 +330,8 @@
                         </button>
                     </div>
 
-                    <!-- ==================== قسم إدارة تخصيصات المشروبات (جديد) ==================== -->
-                    <div class="bg-white p-5 rounded-2xl shadow space-y-5">
+                    <!-- إدارة تخصيصات المشروبات (دمج الحجم والحليب والسكر) -->
+                    <div class="bg-white p-5 rounded-2xl shadow space-y-4">
                         <div>
                             <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
                                 <i class="fa-solid fa-sliders text-amber-600"></i> إدارة خيارات تخصيص المشروبات (الأحجام، الحليب، السكر)
@@ -292,46 +339,41 @@
                             <p class="text-[11px] text-slate-400 mt-0.5">يمكنك إضافة أو حذف أي خيار مع تحديد السعر الإضافي المحسوب تلقائياً في الفاتورة</p>
                         </div>
 
-                        <!-- 1. إدارة الأحجام -->
+                        <!-- دمج إضافة الأحجام والحليب والسكر في نموذج سريع -->
                         <div class="p-3.5 bg-slate-50 border rounded-xl space-y-3">
-                            <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                                <i class="fa-solid fa-mug-saucer text-amber-600"></i> أحجام المشروبات (Sizes)
-                            </span>
-                            <div class="flex gap-2">
-                                <input type="text" id="new-size-name" placeholder="اسم الحجم (مثال: لارج / Large)" class="flex-1 p-2 text-xs border rounded-lg bg-white">
-                                <input type="number" id="new-size-price" step="0.100" placeholder="إضافة السعر (مثال: 0.300)" class="w-32 p-2 text-xs border rounded-lg bg-white">
-                                <button onclick="addModifierOption('sizes')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 rounded-lg">+ إضافة</button>
+                            <span class="font-bold text-xs text-slate-800">إضافة خيار تخصيص جديد</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                <select id="new-mod-type" class="p-2 text-xs border rounded-lg bg-white font-bold">
+                                    <option value="sizes">حجم / جرعة (Size)</option>
+                                    <option value="milks">نوع حليب (Milk)</option>
+                                    <option value="sugars">درجة تحلية (Sugar)</option>
+                                </select>
+                                <input type="text" id="new-mod-name" placeholder="اسم الخيار (مثال: حليب لوز / دبل شوت)" class="p-2 text-xs border rounded-lg bg-white sm:col-span-2">
+                                <div class="flex gap-1">
+                                    <input type="number" id="new-mod-price" step="0.100" placeholder="السعر" class="w-20 p-2 text-xs border rounded-lg bg-white">
+                                    <button onclick="addNewModifierMerged()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg px-3">+ إضافة</button>
+                                </div>
                             </div>
-                            <div id="list-sizes" class="flex flex-wrap gap-2 pt-1"></div>
                         </div>
 
-                        <!-- 2. إدارة أنواع الحليب -->
-                        <div class="p-3.5 bg-slate-50 border rounded-xl space-y-3">
-                            <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                                <i class="fa-solid fa-blender text-amber-600"></i> خيارات الحليب (Milk Types)
-                            </span>
-                            <div class="flex gap-2">
-                                <input type="text" id="new-milk-name" placeholder="نوع الحليب (مثال: حليب جوز هند)" class="flex-1 p-2 text-xs border rounded-lg bg-white">
-                                <input type="number" id="new-milk-price" step="0.100" placeholder="إضافة السعر (مثال: 0.250)" class="w-32 p-2 text-xs border rounded-lg bg-white">
-                                <button onclick="addModifierOption('milks')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 rounded-lg">+ إضافة</button>
+                        <!-- استعراض الخيارات الحالية -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="p-3 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-700 block">الأحجام المتوفرة</span>
+                                <div id="list-sizes" class="flex flex-wrap gap-1.5"></div>
                             </div>
-                            <div id="list-milks" class="flex flex-wrap gap-2 pt-1"></div>
-                        </div>
-
-                        <!-- 3. إدارة درجات التحلية -->
-                        <div class="p-3.5 bg-slate-50 border rounded-xl space-y-3">
-                            <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                                <i class="fa-solid fa-cube text-amber-600"></i> درجات السكر والتحلية (Sweetness)
-                            </span>
-                            <div class="flex gap-2">
-                                <input type="text" id="new-sugar-name" placeholder="درجة التحلية (مثال: سكر ستيفيا)" class="flex-1 p-2 text-xs border rounded-lg bg-white">
-                                <button onclick="addSugarOption()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 rounded-lg">+ إضافة</button>
+                            <div class="p-3 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-700 block">خيارات الحليب</span>
+                                <div id="list-milks" class="flex flex-wrap gap-1.5"></div>
                             </div>
-                            <div id="list-sugars" class="flex flex-wrap gap-2 pt-1"></div>
+                            <div class="p-3 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-700 block">درجات السكر</span>
+                                <div id="list-sugars" class="flex flex-wrap gap-1.5"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- إضافة / تعديل صنف -->
+                    <!-- إضافة / تعديل صنف في المنيو -->
                     <div class="bg-white p-5 rounded-2xl shadow">
                         <h3 id="form-item-title" class="font-black text-slate-800 mb-3 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-plus-circle text-amber-600"></i> إضافة صنف جديد للقائمة
@@ -358,7 +400,7 @@
                         </div>
                     </div>
 
-                    <!-- قائمة الأصناف مع أزرار التوفر والحذف والتعديل -->
+                    <!-- قائمة الأصناف وإدارة المخزون -->
                     <div class="bg-white p-5 rounded-2xl shadow">
                         <h3 class="font-black text-slate-800 mb-3 text-sm flex items-center justify-between">
                             <span>إدارة الأصناف والمخزون الحالي</span>
@@ -371,7 +413,7 @@
         </main>
     </div>
 
-    <!-- ==================== 3. نافذة تخصيص المشروب الديناميكية ==================== -->
+    <!-- ==================== 3. نافذة تخصيص المشروب ==================== -->
     <div id="customizer-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl flex flex-col space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
@@ -441,7 +483,7 @@
         <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center pb-2 border-b">
                 <span class="font-bold text-sm text-slate-800">معاينة الفاتورة للطباعة</span>
-                <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+                <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             
             <div id="receipt-modal-content" class="my-4 p-4 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-mono text-center text-xs overflow-y-auto">
@@ -449,7 +491,7 @@
                 <p id="rec-cafe-sub" class="text-[10px] text-slate-500 mt-0.5"></p>
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
                 <div class="flex justify-between text-[11px] text-slate-600">
-                    <span>فاتورة: <b id="rec-id">#00000</b></span>
+                    <span>طلب رقم: <b id="rec-daily-id" class="text-sm text-slate-900">#0</b></span>
                     <span id="rec-type">طاولة 1</span>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-500 mt-1">
@@ -489,6 +531,16 @@
             cafeName: "سمط كافيه",
             cafeSub: "نظام الطلب الذاتي ونقاط البيع",
             tablesCount: 10,
+            theme: {
+                custBg: "#f8fafc",
+                custImg: "",
+                cashierBg: "#f1f5f9",
+                cashierImg: ""
+            },
+            dailySequence: {
+                lastDate: new Date().toISOString().slice(0, 10),
+                currentCount: 0
+            },
             categories: ["الكل", "قهوة ساخنة", "مشروبات باردة", "قهوة مختصة (V60)", "حلويات ومخبوزات"],
             modifiers: {
                 sizes: [
@@ -525,6 +577,8 @@
 
         let appData = JSON.parse(localStorage.getItem('cloud_cafe_pos_data')) || defaultData;
         if (!appData.firebaseUrl) appData.firebaseUrl = FIREBASE_DEFAULT_URL;
+        if (!appData.theme) appData.theme = defaultData.theme;
+        if (!appData.dailySequence) appData.dailySequence = defaultData.dailySequence;
         if (!appData.modifiers) appData.modifiers = defaultData.modifiers;
 
         appData.menu.forEach(item => {
@@ -545,6 +599,20 @@
             return (appData.firebaseUrl || FIREBASE_DEFAULT_URL).trim().replace(/\/$/, "");
         }
 
+        // الحصول على الرقم التسلسلي اليومي الجديد
+        function getNextDailyOrderNumber() {
+            const today = new Date().toISOString().slice(0, 10);
+            if (!appData.dailySequence || appData.dailySequence.lastDate !== today) {
+                appData.dailySequence = {
+                    lastDate: today,
+                    currentCount: 1
+                };
+            } else {
+                appData.dailySequence.currentCount = (appData.dailySequence.currentCount || 0) + 1;
+            }
+            return appData.dailySequence.currentCount;
+        }
+
         function playNotificationSound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -560,47 +628,97 @@
             } catch (e) {}
         }
 
-        // ==================== إدارة خيارات التخصيص في الإعدادات ====================
+        // ==================== تطبيق المظهر والخلفيات ====================
+        function applyThemes() {
+            const theme = appData.theme || defaultData.theme;
+            
+            if (customerTableParam) {
+                // تطبيق مظهر شاشة الزبون
+                const custApp = document.getElementById('customer-qr-app');
+                if (custApp) custApp.style.backgroundColor = theme.custBg || "#f8fafc";
+                
+                const logoWrap = document.getElementById('cust-logo-wrapper');
+                const logoImg = document.getElementById('cust-header-img');
+                if (theme.custImg && theme.custImg.trim() !== "") {
+                    logoImg.src = theme.custImg;
+                    logoWrap.classList.remove('hidden');
+                    logoWrap.classList.add('flex');
+                } else {
+                    logoWrap.classList.add('hidden');
+                    logoWrap.classList.remove('flex');
+                }
+            } else {
+                // تطبيق مظهر شاشة الكاشير
+                const mainBody = document.getElementById('main-body');
+                if (mainBody) mainBody.style.backgroundColor = theme.cashierBg || "#f1f5f9";
+                
+                const cashierImg = document.getElementById('cashier-header-img');
+                const cashierIcon = document.getElementById('cashier-header-icon');
+                if (theme.cashierImg && theme.cashierImg.trim() !== "") {
+                    cashierImg.src = theme.cashierImg;
+                    cashierImg.classList.remove('hidden');
+                    cashierIcon.classList.add('hidden');
+                } else {
+                    cashierImg.classList.add('hidden');
+                    cashierIcon.classList.remove('hidden');
+                }
+            }
+        }
+
+        function saveThemeSettings() {
+            if (!appData.theme) appData.theme = {};
+            appData.theme.custBg = document.getElementById('theme-cust-bg').value;
+            appData.theme.custImg = document.getElementById('theme-cust-img').value.trim();
+            appData.theme.cashierBg = document.getElementById('theme-cashier-bg').value;
+            appData.theme.cashierImg = document.getElementById('theme-cashier-img').value.trim();
+            
+            saveData();
+            applyThemes();
+            alert("تم حفظ المظهر وتطبيقه سحابياً بنجاح!");
+        }
+
+        // ==================== إدارة التخصيص المدمجة ====================
         function renderModifiersManager() {
-            // قائمة الأحجام
             const sizesContainer = document.getElementById('list-sizes');
             sizesContainer.innerHTML = appData.modifiers.sizes.map((s, idx) => `
-                <span class="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 shadow-sm">
+                <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
                     <span>${s.name} (+${s.price.toFixed(3)})</span>
-                    <button onclick="deleteModifierOption('sizes', ${idx})" class="text-red-500 hover:text-red-700 ml-1">✕</button>
+                    <button onclick="deleteModifierOption('sizes', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
                 </span>
             `).join('');
 
-            // قائمة الحليب
             const milksContainer = document.getElementById('list-milks');
             milksContainer.innerHTML = appData.modifiers.milks.map((m, idx) => `
-                <span class="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 shadow-sm">
+                <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
                     <span>${m.name} (+${m.price.toFixed(3)})</span>
-                    <button onclick="deleteModifierOption('milks', ${idx})" class="text-red-500 hover:text-red-700 ml-1">✕</button>
+                    <button onclick="deleteModifierOption('milks', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
                 </span>
             `).join('');
 
-            // قائمة السكر
             const sugarsContainer = document.getElementById('list-sugars');
             sugarsContainer.innerHTML = appData.modifiers.sugars.map((s, idx) => `
-                <span class="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 shadow-sm">
+                <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
                     <span>${s}</span>
-                    <button onclick="deleteSugarOption(${idx})" class="text-red-500 hover:text-red-700 ml-1">✕</button>
+                    <button onclick="deleteModifierOption('sugars', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
                 </span>
             `).join('');
         }
 
-        function addModifierOption(type) {
-            const nameInput = document.getElementById(type === 'sizes' ? 'new-size-name' : 'new-milk-name');
-            const priceInput = document.getElementById(type === 'sizes' ? 'new-size-price' : 'new-milk-price');
-            const name = nameInput.value.trim();
-            const price = parseFloat(priceInput.value) || 0.000;
+        function addNewModifierMerged() {
+            const type = document.getElementById('new-mod-type').value;
+            const name = document.getElementById('new-mod-name').value.trim();
+            const price = parseFloat(document.getElementById('new-mod-price').value) || 0.000;
 
-            if (!name) return alert("يرجى كتابة الاسم بشكل صحيح!");
+            if (!name) return alert("يرجى إدخال اسم الخيار!");
 
-            appData.modifiers[type].push({ name, price });
-            nameInput.value = '';
-            priceInput.value = '';
+            if (type === 'sugars') {
+                appData.modifiers.sugars.push(name);
+            } else {
+                appData.modifiers[type].push({ name, price });
+            }
+
+            document.getElementById('new-mod-name').value = '';
+            document.getElementById('new-mod-price').value = '';
             saveData();
             renderModifiersManager();
         }
@@ -608,23 +726,6 @@
         function deleteModifierOption(type, index) {
             if (appData.modifiers[type].length <= 1) return alert("يجب إبقاء خيار واحد على الأقل!");
             appData.modifiers[type].splice(index, 1);
-            saveData();
-            renderModifiersManager();
-        }
-
-        function addSugarOption() {
-            const input = document.getElementById('new-sugar-name');
-            const name = input.value.trim();
-            if (!name) return alert("يرجى إدخال مسمى التحلية!");
-            appData.modifiers.sugars.push(name);
-            input.value = '';
-            saveData();
-            renderModifiersManager();
-        }
-
-        function deleteSugarOption(index) {
-            if (appData.modifiers.sugars.length <= 1) return alert("يجب إبقاء خيار سكر واحد على الأقل!");
-            appData.modifiers.sugars.splice(index, 1);
             saveData();
             renderModifiersManager();
         }
@@ -711,12 +812,29 @@
             closeCustomizerModal();
         }
 
+        // إضافة سريعة بدون تخصيص في شاشة الزبون
+        function addQuickCustomerCart(id) {
+            const item = appData.menu.find(i => i.id === id);
+            if (!item || item.available === false) return;
+
+            customerCart.push({
+                id: item.id,
+                cartItemId: Date.now() + Math.random(),
+                name: item.name,
+                customization: 'افتراضي',
+                price: item.price,
+                qty: 1
+            });
+            renderCustomerMenu();
+        }
+
         // ==================== وضع الزبون (QR Mode) ====================
         async function initCustomerMode() {
             document.getElementById('cashier-system-app').classList.add('hidden');
             document.getElementById('customer-qr-app').classList.remove('hidden');
             document.getElementById('cust-table-num').innerText = customerTableParam;
 
+            applyThemes();
             await loadCustomerDataAndLiveStatus();
             setInterval(loadCustomerDataAndLiveStatus, 4000);
         }
@@ -734,6 +852,10 @@
                         appData.cafeSub = cloudState.cafeSub || appData.cafeSub;
                         if (cloudState.menu && cloudState.menu.length > 0) appData.menu = cloudState.menu;
                         if (cloudState.modifiers) appData.modifiers = cloudState.modifiers;
+                        if (cloudState.theme) {
+                            appData.theme = cloudState.theme;
+                            applyThemes();
+                        }
                         
                         const activeOrders = cloudState.activeTableOrders || {};
                         updateCustomerStatusUI(activeOrders[customerTableParam]);
@@ -767,7 +889,7 @@
                 badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-extrabold";
             }
 
-            document.getElementById('cust-order-time').innerText = order.time || '--:--';
+            document.getElementById('cust-order-id-display').innerText = '#' + (order.dailyNumber || order.time || '1');
             const total = (order.items || []).reduce((s, i) => s + (i.price * i.qty), 0);
             document.getElementById('cust-order-summary-total').innerText = total.toFixed(3) + " ر.ع";
 
@@ -780,6 +902,7 @@
             `).join('');
         }
 
+        // قائمة المنيو مع فصل زر "إضافة" عن زر "تخصيص"
         function renderCustomerMenu() {
             const container = document.getElementById('cust-menu-list');
             container.innerHTML = appData.menu.map(item => {
@@ -788,7 +911,7 @@
                 const countInCart = inCartItems.reduce((s, i) => s + i.qty, 0);
 
                 return `
-                    <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-center ${!isAvail ? 'opacity-50 grayscale' : ''}">
+                    <div class="bg-white/95 backdrop-blur p-3.5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-center ${!isAvail ? 'opacity-50 grayscale' : ''}">
                         <div>
                             <div class="flex items-center gap-1.5">
                                 <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-bold">${item.category}</span>
@@ -799,10 +922,15 @@
                         </div>
                         <div>
                             ${isAvail ? `
-                                <button onclick="openCustomizer(${item.id}, 'customer')" class="px-3.5 py-1.5 bg-amber-600 active:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center gap-1">
-                                    <i class="fa-solid fa-sliders text-[10px]"></i>
-                                    <span>طلب وتخصيص ${countInCart > 0 ? `(${countInCart})` : ''}</span>
-                                </button>
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="openCustomizer(${item.id}, 'customer')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200">
+                                        <i class="fa-solid fa-sliders text-[11px] text-amber-600"></i>
+                                        <span>تخصيص</span>
+                                    </button>
+                                    <button onclick="addQuickCustomerCart(${item.id})" class="px-3 py-1.5 bg-amber-600 active:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+                                        + إضافة ${countInCart > 0 ? `(${countInCart})` : ''}
+                                    </button>
+                                </div>
                             ` : `
                                 <span class="text-xs text-slate-400 font-bold">غير متاح</span>
                             `}
@@ -817,7 +945,7 @@
         }
 
         async function sendRealCustomerOrder() {
-            if (customerCart.length === 0) return alert("يرجى اختيار مشروب وتخصيصه أولاً!");
+            if (customerCart.length === 0) return alert("يرجى اختيار مشروب أولاً!");
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return alert("رابط قاعدة البيانات غير مضبوط!");
 
@@ -846,7 +974,7 @@
                 document.getElementById('cust-order-note').value = '';
                 renderCustomerMenu();
                 updateCustomerStatusUI(orderPayload);
-                alert("✅ تم إرسال طلبك للكاشير بنجاح! سيتم تحضيره وفق خياراتك.");
+                alert("✅ تم إرسال طلبك بنجاح! جاري تحضيره.");
             } catch (e) {
                 alert("تعذر إرسال الطلب:\n" + e.message);
             } finally {
@@ -855,15 +983,24 @@
             }
         }
 
-        // ==================== وضع الكاشير والمزامنة ====================
+        // ==================== وضع الكاشير ====================
         function updateUI() {
             document.getElementById('header-cafe-name').innerText = appData.cafeName;
             document.getElementById('header-cafe-sub').innerText = appData.cafeSub;
             document.getElementById('setting-cafe-name').value = appData.cafeName;
             document.getElementById('setting-cafe-sub').value = appData.cafeSub;
             document.getElementById('setting-tables-count').value = appData.tablesCount;
+            
+            // تعبئة حقول المظهر
+            const theme = appData.theme || defaultData.theme;
+            document.getElementById('theme-cust-bg').value = theme.custBg || "#f8fafc";
+            document.getElementById('theme-cust-img').value = theme.custImg || "";
+            document.getElementById('theme-cashier-bg').value = theme.cashierBg || "#f1f5f9";
+            document.getElementById('theme-cashier-img').value = theme.cashierImg || "";
+
             document.title = `${appData.cafeName} - الكاشير`;
 
+            applyThemes();
             rebuildCategories();
             renderCategories();
             renderMenuItems();
@@ -895,6 +1032,8 @@
                         cafeName: appData.cafeName,
                         cafeSub: appData.cafeSub,
                         tablesCount: appData.tablesCount,
+                        theme: appData.theme,
+                        dailySequence: appData.dailySequence,
                         menu: appData.menu,
                         modifiers: appData.modifiers,
                         activeTableOrders: appData.activeTableOrders || {},
@@ -917,6 +1056,11 @@
                 if (cloudState) {
                     if (cloudState.menu) appData.menu = cloudState.menu;
                     if (cloudState.modifiers) appData.modifiers = cloudState.modifiers;
+                    if (cloudState.theme) {
+                        appData.theme = cloudState.theme;
+                        applyThemes();
+                    }
+                    if (cloudState.dailySequence) appData.dailySequence = cloudState.dailySequence;
                     if (cloudState.cafeName) appData.cafeName = cloudState.cafeName;
                     if (cloudState.cafeSub) appData.cafeSub = cloudState.cafeSub;
                     if (cloudState.tablesCount) appData.tablesCount = cloudState.tablesCount;
@@ -1117,7 +1261,7 @@
             }
         }
 
-        // ==================== الدفع واختيار الطريقة ====================
+        // ==================== الدفع بالترقيم اليومي المتسلسل ====================
         let pendingCheckoutOrder = null;
 
         function openPaymentModal() {
@@ -1145,8 +1289,12 @@
         function finalizePayment(paymentMethod) {
             if (!pendingCheckoutOrder) return;
 
+            // الحصول على الرقم التسلسلي اليومي (يبدأ من 1 كل يوم)
+            const dailyNum = getNextDailyOrderNumber();
+
             const completed = {
                 id: Date.now().toString().slice(-5),
+                dailyNumber: dailyNum,
                 type: pendingCheckoutOrder.type,
                 items: [...pendingCheckoutOrder.items],
                 time: new Date().toLocaleString('ar-OM'),
@@ -1314,7 +1462,7 @@
             const tbody = document.getElementById('orders-history-body');
             tbody.innerHTML = appData.completedOrders.map((o, idx) => `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 font-mono font-bold text-slate-900">#${o.id}</td>
+                    <td class="p-3 font-mono font-black text-amber-700 text-sm">#${o.dailyNumber || o.id}</td>
                     <td class="p-3 font-bold">${o.type}</td>
                     <td class="p-3">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${o.paymentMethod?.includes('بطاقة') ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}">
@@ -1343,7 +1491,7 @@
         function showReceiptModal(order) {
             document.getElementById('rec-cafe-name').innerText = appData.cafeName;
             document.getElementById('rec-cafe-sub').innerText = appData.cafeSub;
-            document.getElementById('rec-id').innerText = '#' + order.id;
+            document.getElementById('rec-daily-id').innerText = '#' + (order.dailyNumber || order.id);
             document.getElementById('rec-type').innerText = order.type;
             document.getElementById('rec-payment').innerText = order.paymentMethod || 'نقد';
             document.getElementById('rec-time').innerText = order.time;
@@ -1374,6 +1522,7 @@
         function clearSalesHistory() {
             if (confirm("هل أنت متأكد من تصفير سجل المبيعات بالكامل سحابياً؟")) {
                 appData.completedOrders = [];
+                if (appData.dailySequence) appData.dailySequence.currentCount = 0;
                 saveData();
             }
         }
@@ -1382,10 +1531,10 @@
         function exportSalesToCSV() {
             if (appData.completedOrders.length === 0) return alert("لا توجد مبيعات مسجلة لتصديرها!");
 
-            let csv = "\uFEFFرقم الفاتورة,نوع الطلب,طريقة الدفع,الأصناف,الوقت والتاريخ,المجموع (ر.ع)\n";
+            let csv = "\uFEFFالرقم اليومي,رقم الفاتورة,نوع الطلب,طريقة الدفع,الأصناف,الوقت والتاريخ,المجموع (ر.ع)\n";
             appData.completedOrders.forEach(o => {
                 const itemsText = Array.isArray(o.items) ? o.items.map(i => `${i.name} (×${i.qty})`).join(' - ') : o.items;
-                csv += `"${o.id}","${o.type}","${o.paymentMethod || 'نقد'}","${itemsText}","${o.time}","${o.total.toFixed(3)}"\n`;
+                csv += `"${o.dailyNumber || ''}","${o.id}","${o.type}","${o.paymentMethod || 'نقد'}","${itemsText}","${o.time}","${o.total.toFixed(3)}"\n`;
             });
 
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1509,7 +1658,7 @@
             alert("تم حفظ وتحديث إعدادات الكافيه بنجاح ومزامنتها لكل الأجهزة!");
         }
 
-        // ==================== بدء التشغيل ====================
+        // ==================== بدء التشغيل والمزامنة ====================
         window.onload = async () => {
             if (customerTableParam) {
                 initCustomerMode();
