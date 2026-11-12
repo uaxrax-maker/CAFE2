@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الكافيه الذكي - POS & QR</title>
-    <!-- Tailwind CSS للتصميم -->
+    <title>نظام الكافيه السحابي - POS & QR</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- خط تجوال العربي -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <!-- أيقونات FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: 'Tajawal', sans-serif; background-color: #f3f4f6; }
@@ -23,19 +20,44 @@
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
-    <!-- الشريط العلوي -->
-    <header class="bg-gray-900 text-white px-6 py-3 flex justify-between items-center shadow-md z-10">
+    <!-- واجهة جوال العميل الحقيقية (تظهر فقط عند مسح الباركود ?table=X) -->
+    <div id="customer-qr-app" class="hidden h-full flex flex-col bg-gray-50 max-w-md mx-auto w-full shadow-2xl border-x">
+        <div class="bg-amber-600 text-white p-5 text-center shadow-md">
+            <h1 id="cust-cafe-name" class="text-2xl font-extrabold">كافيه القهوة المختصة</h1>
+            <p id="cust-cafe-sub" class="text-xs text-amber-100 mt-1">أهلاً بك، اطلب مباشرة من طاولتك</p>
+            <div class="mt-3 inline-block bg-amber-800 text-white text-sm font-bold px-4 py-1 rounded-full">
+                طاولة رقم <span id="cust-table-num">1</span>
+            </div>
+        </div>
+
+        <div id="cust-menu-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+
+        <div class="p-4 bg-white border-t shadow-lg space-y-3">
+            <input type="text" id="cust-order-note" placeholder="ملاحظات الطلب (سكر قليل، بدون ثلج...)" class="w-full p-2.5 text-sm border rounded-lg bg-gray-50">
+            <button onclick="sendRealCustomerOrder()" id="cust-submit-btn" class="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold flex justify-between px-5 items-center transition">
+                <span>إرسال الطلب للكاشير</span>
+                <span id="cust-cart-total" class="text-amber-400">0.000 ر.ع</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- الشريط العلوي للكاشير -->
+    <header id="cashier-header" class="bg-gray-900 text-white px-6 py-3 flex justify-between items-center shadow-md z-10">
         <div class="flex items-center gap-3">
             <div class="bg-amber-600 p-2 rounded-lg text-white">
                 <i class="fa-solid fa-mug-hot text-xl"></i>
             </div>
             <div>
-                <h1 id="header-cafe-name" class="text-xl font-bold tracking-wide">اسم الكافيه</h1>
-                <p id="header-cafe-sub" class="text-xs text-gray-400">نظام نقاط البيع والطلب الذاتي</p>
+                <div class="flex items-center gap-2">
+                    <h1 id="header-cafe-name" class="text-xl font-bold tracking-wide">اسم الكافيه</h1>
+                    <span id="cloud-status" class="text-[10px] bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-gray-400" id="cloud-dot"></span> <span id="cloud-text">محلي</span>
+                    </span>
+                </div>
+                <p id="header-cafe-sub" class="text-xs text-gray-400">نظام نقاط البيع والطلب الذاتي السحابي</p>
             </div>
         </div>
 
-        <!-- أزرار التنقل بين الشاشات -->
         <nav class="flex bg-gray-800 rounded-lg p-1 gap-1 overflow-x-auto">
             <button onclick="switchTab('pos')" id="tab-pos" class="tab-btn active-tab px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2">
                 <i class="fa-solid fa-cash-register"></i> الكاشير
@@ -44,42 +66,37 @@
                 <i class="fa-solid fa-chair"></i> الطاولات <span id="busy-tables-badge" class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full hidden">0</span>
             </button>
             <button onclick="switchTab('qr')" id="tab-qr" class="tab-btn px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white transition flex items-center gap-2">
-                <i class="fa-solid fa-qrcode"></i> الباركود وشاشة العميل
+                <i class="fa-solid fa-qrcode"></i> الباركود
             </button>
             <button onclick="switchTab('orders')" id="tab-orders" class="tab-btn px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white transition flex items-center gap-2">
                 <i class="fa-solid fa-receipt"></i> المبيعات
             </button>
             <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white transition flex items-center gap-2">
-                <i class="fa-solid fa-gear"></i> الإعدادات والمنيو
+                <i class="fa-solid fa-gear"></i> الإعدادات والربط السحابي
             </button>
         </nav>
     </header>
 
-    <!-- المحتوى الرئيسي -->
-    <main class="flex-1 overflow-hidden relative">
+    <!-- المحتوى الرئيسي للكاشير -->
+    <main id="cashier-main" class="flex-1 overflow-hidden relative">
 
-        <!-- 1. شاشة الكاشير (POS) -->
+        <!-- 1. شاشة الكاشير -->
         <section id="view-pos" class="h-full flex flex-col md:flex-row">
-            <!-- قائمة الأصناف -->
             <div class="flex-1 flex flex-col h-full overflow-hidden p-4">
-                <!-- شريط الفئات -->
                 <div id="pos-categories" class="flex gap-2 pb-3 overflow-x-auto border-b border-gray-200"></div>
-                <!-- شبكة المنتجات -->
                 <div id="pos-items" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 py-4 overflow-y-auto flex-1"></div>
             </div>
 
-            <!-- سلة المشتريات والفاتورة -->
             <div class="w-full md:w-96 bg-white border-r border-gray-200 flex flex-col h-full shadow-lg">
                 <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
                     <h2 class="font-bold text-gray-800 flex items-center gap-2">
-                        <i class="fa-solid fa-basket-shopping text-amber-600"></i> تفاصيل الطلب الحالي
+                        <i class="fa-solid fa-basket-shopping text-amber-600"></i> تفاصيل الطلب
                     </h2>
                     <button onclick="clearCart()" class="text-xs text-red-500 hover:text-red-700 font-medium">
                         <i class="fa-solid fa-trash"></i> إفراغ
                     </button>
                 </div>
 
-                <!-- اختيار نوع الطلب ورقم الطاولة -->
                 <div class="p-3 bg-gray-100 border-b grid grid-cols-2 gap-2 text-sm">
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">نوع الطلب</label>
@@ -94,10 +111,8 @@
                     </div>
                 </div>
 
-                <!-- قائمة العناصر في السلة -->
                 <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
 
-                <!-- الإجمالي وأزرار الدفع -->
                 <div class="p-4 bg-gray-50 border-t space-y-3">
                     <div class="flex gap-2">
                         <input type="text" id="customer-name" placeholder="اسم العميل (اختياري)" class="w-1/2 p-2 text-sm border rounded">
@@ -134,8 +149,8 @@
             <div class="max-w-6xl mx-auto">
                 <div class="flex justify-between items-center mb-6">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">خريطة الطاولات والطلبات النشطة</h2>
-                        <p class="text-sm text-gray-500">اضغط على أي طاولة مشغولة لعرض تفاصيل طلبها أو إتمام الدفع</p>
+                        <h2 class="text-2xl font-bold text-gray-800">خريطة الطاولات والطلبات الحية</h2>
+                        <p class="text-sm text-gray-500">تتحدث هذه الشاشة تلقائياً مع صوت تنبيه فور إرسال العميل لطلبه عبر الباركود</p>
                     </div>
                     <div class="flex gap-4 text-sm">
                         <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> متاحة</span>
@@ -146,49 +161,22 @@
             </div>
         </section>
 
-        <!-- 3. شاشة الباركود (QR) ومحاكي طلب العميل -->
+        <!-- 3. شاشة الباركود (QR) -->
         <section id="view-qr" class="h-full p-6 overflow-y-auto hidden">
-            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- قسم توليد الباركود للطاولات -->
-                <div class="bg-white p-6 rounded-xl shadow">
-                    <h2 class="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-qrcode text-amber-600"></i> رموز الباركود (QR) للطاولات
-                    </h2>
-                    <p class="text-sm text-gray-500 mb-4">اطبع هذه الرموز وضعها على الطاولات. عند مسحها يفتح المنيو برقم الطاولة تلقائياً.</p>
-                    
-                    <div id="qr-cards-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-96 overflow-y-auto p-2 border rounded-lg"></div>
-                </div>
-
-                <!-- محاكي شاشة جوال العميل (الطلب الذاتي) -->
-                <div class="flex flex-col items-center">
-                    <div class="mb-2 text-center">
-                        <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">معاينة حية لشاشة العميل (الطلب الذاتي)</span>
-                    </div>
-                    <div class="w-80 bg-white border-8 border-gray-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[520px]">
-                        <!-- هيدر جوال العميل -->
-                        <div class="bg-amber-600 text-white p-4 text-center">
-                            <h3 id="qr-sim-cafe-name" class="font-bold text-lg">اسم الكافيه</h3>
-                            <div class="flex justify-center items-center gap-2 mt-1">
-                                <span class="text-xs bg-amber-700 px-2 py-0.5 rounded">أنت تطلب للطاولة رقم:</span>
-                                <select id="qr-sim-table" class="text-gray-900 text-xs font-bold rounded px-1 py-0.5"></select>
-                            </div>
-                        </div>
-                        <!-- قائمة الأصناف في جوال العميل -->
-                        <div id="qr-sim-menu" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50"></div>
-                        <!-- فوتر إرسال الطلب من جوال العميل -->
-                        <div class="p-3 bg-white border-t">
-                            <input type="text" id="qr-sim-note" placeholder="ملاحظاتك (مثل: سكر قليل، حليب لوز)..." class="w-full text-xs p-2 border rounded mb-2">
-                            <button onclick="submitCustomerQROrder()" class="w-full bg-gray-900 hover:bg-gray-800 text-white py-2 rounded-lg text-sm font-bold flex justify-between px-4 items-center">
-                                <span>إرسال الطلب للكاشير</span>
-                                <span id="qr-sim-total">0.000 ر.ع</span>
-                            </button>
-                        </div>
+            <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow">
+                <div class="flex justify-between items-center mb-4 border-b pb-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fa-solid fa-qrcode text-amber-600"></i> رموز الباركود الذكية للطاولات
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-1">عندما يمسح العميل الباركود بجواله، تفتح له شاشة الطلب الخاصة بطاولته مباشرة وترسل الطلب للكاشير سحابياً.</p>
                     </div>
                 </div>
+                <div id="qr-cards-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-2"></div>
             </div>
         </section>
 
-        <!-- 4. شاشة سجل المبيعات والتقارير -->
+        <!-- 4. شاشة المبيعات -->
         <section id="view-orders" class="h-full p-6 overflow-y-auto hidden">
             <div class="max-w-5xl mx-auto space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -201,7 +189,7 @@
                         <h3 id="stat-total-orders" class="text-2xl font-bold text-gray-800 mt-1">0</h3>
                     </div>
                     <div class="bg-white p-5 rounded-xl shadow border-r-4 border-amber-500">
-                        <p class="text-gray-500 text-sm">طلبات قيد الانتظار (طاولات)</p>
+                        <p class="text-gray-500 text-sm">طاولات نشطة حالياً</p>
                         <h3 id="stat-active-tables" class="text-2xl font-bold text-gray-800 mt-1">0</h3>
                     </div>
                 </div>
@@ -229,9 +217,24 @@
             </div>
         </section>
 
-        <!-- 5. شاشة الإعدادات وتخصيص الاسم والمنيو -->
+        <!-- 5. شاشة الإعدادات والربط السحابي -->
         <section id="view-settings" class="h-full p-6 overflow-y-auto hidden">
             <div class="max-w-4xl mx-auto space-y-6">
+                
+                <!-- إعدادات الربط السحابي Firebase -->
+                <div class="bg-amber-50 border border-amber-200 p-6 rounded-xl shadow-sm">
+                    <h2 class="text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-600"></i> الربط السحابي الفوري (Firebase Realtime Database)
+                    </h2>
+                    <p class="text-xs text-amber-800 mb-4">ضع رابط قاعدة بيانات Firebase هنا لتتم مزامنة المنيو، اسم الكافيه، وطلبات الباركود بين جوالات العملاء وشاشة الكاشير في نفس اللحظة.</p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="url" id="setting-firebase-url" dir="ltr" placeholder="https://your-project-default-rtdb.firebaseio.com" class="flex-1 p-2.5 border rounded-lg text-sm font-mono bg-white">
+                        <button onclick="saveCafeSettings()" class="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition whitespace-nowrap">
+                            حفظ وتفعيل المزامنة
+                        </button>
+                    </div>
+                </div>
+
                 <!-- إعدادات الهوية واسم الكافيه -->
                 <div class="bg-white p-6 rounded-xl shadow">
                     <h2 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
@@ -239,7 +242,7 @@
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">اسم الكافيه (يظهر في كل النظام)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">اسم الكافيه (متغير في كل النظام)</label>
                             <input type="text" id="setting-cafe-name" class="w-full p-2 border rounded-lg">
                         </div>
                         <div>
@@ -247,12 +250,12 @@
                             <input type="text" id="setting-cafe-sub" class="w-full p-2 border rounded-lg">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">عدد الطاولات في الكافيه</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">عدد الطاولات</label>
                             <input type="number" id="setting-tables-count" min="1" max="50" class="w-full p-2 border rounded-lg">
                         </div>
                     </div>
                     <button onclick="saveCafeSettings()" class="mt-4 bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg text-sm font-bold transition">
-                        حفظ إعدادات الكافيه
+                        حفظ الإعدادات ورفعها للسحابة
                     </button>
                 </div>
 
@@ -286,7 +289,7 @@
 
     </main>
 
-    <!-- منطقة الطباعة المخفية للفاتورة الحرارية -->
+    <!-- منطقة الطباعة -->
     <div id="print-area" class="hidden p-4 text-center font-mono text-sm">
         <h2 id="print-cafe-name" class="text-xl font-bold"></h2>
         <p id="print-order-info" class="text-xs my-1"></p>
@@ -300,10 +303,10 @@
         <p class="text-xs mt-4">شكراً لزيارتكم!</p>
     </div>
 
-    <!-- البرمجة والتفاعل (JavaScript) -->
     <script>
-        // البيانات الافتراضية القابلة للتعديل
+        // إعدادات النظام الافتراضية
         const defaultData = {
+            firebaseUrl: "", // يمكنك أيضاً لصق رابط Firebase هنا مباشرة بين علامتي التنصيص
             cafeName: "كافيه القهوة المختصة",
             cafeSub: "نظام نقاط البيع والطلب الذاتي",
             tablesCount: 10,
@@ -314,36 +317,218 @@
                 { id: 3, name: "فلات وايت", price: 1.500, category: "قهوة ساخنة" },
                 { id: 4, name: "سبانيش لاتيه بارد", price: 1.900, category: "مشروبات باردة" },
                 { id: 5, name: "آيس أمريكانو", price: 1.400, category: "مشروبات باردة" },
-                { id: 6, name: "موهيتو باشن فروت", price: 1.800, category: "مشروبات باردة" },
-                { id: 7, name: "قهوة مقطرة V60 إثيوبي", price: 2.200, category: "قهوة مختصة (V60)" },
-                { id: 8, name: "كيمكس كولومبي", price: 2.400, category: "قهوة مختصة (V60)" },
-                { id: 9, name: "كيكة سان سيباستيان", price: 2.500, category: "حلويات ومخبوزات" },
-                { id: 10, name: "كرواسون زبدة طازج", price: 1.100, category: "حلويات ومخبوزات" }
+                { id: 6, name: "قهوة مقطرة V60 إثيوبي", price: 2.200, category: "قهوة مختصة (V60)" },
+                { id: 7, name: "كيكة سان سيباستيان", price: 2.500, category: "حلويات ومخبوزات" }
             ],
-            activeTableOrders: {}, // { tableNumber: { items: [], note: '', customer: '' } }
+            activeTableOrders: {},
             completedOrders: []
         };
 
-        // تحميل البيانات من الذاكرة المحلية (LocalStorage)
-        let appData = JSON.parse(localStorage.getItem('custom_cafe_pos_data')) || defaultData;
+        let appData = JSON.parse(localStorage.getItem('cloud_cafe_pos_data')) || defaultData;
         let currentCategory = "الكل";
         let currentCart = [];
-        let qrSimCart = [];
+        let customerCart = [];
+        let lastKnownBusyCount = 0;
+
+        // التحقق مما إذا كان الرابط مفتوحاً من جوال عميل عبر الباركود (?table=X)
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerTableParam = urlParams.get('table');
+        const urlDbParam = urlParams.get('db');
+        if (urlDbParam) appData.firebaseUrl = decodeURIComponent(urlDbParam);
+
+        // تنبيه صوتي للكاشير عند وصول طلب جديد من الباركود
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.25);
+            } catch (e) {}
+        }
+
+        // تنظيف رابط Firebase
+        function getCleanDbUrl() {
+            if (!appData.firebaseUrl) return null;
+            return appData.firebaseUrl.trim().replace(/\/$/, "");
+        }
+
+        // رفع الإعدادات والمنيو والطاولات إلى السحابة
+        async function syncToCloud() {
+            const dbUrl = getCleanDbUrl();
+            if (!dbUrl) return;
+            try {
+                await fetch(`${dbUrl}/cafeState.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        cafeName: appData.cafeName,
+                        cafeSub: appData.cafeSub,
+                        tablesCount: appData.tablesCount,
+                        menu: appData.menu,
+                        activeTableOrders: appData.activeTableOrders || {}
+                    })
+                });
+                updateCloudBadge(true);
+            } catch (e) {
+                updateCloudBadge(false);
+            }
+        }
+
+        // جلب الطلبات اللحظية من السحابة للكاشير
+        async function listenFromCloud() {
+            const dbUrl = getCleanDbUrl();
+            if (!dbUrl) {
+                updateCloudBadge(false);
+                return;
+            }
+            try {
+                const res = await fetch(`${dbUrl}/cafeState.json`);
+                const cloudState = await res.json();
+                if (cloudState) {
+                    const cloudOrders = cloudState.activeTableOrders || {};
+                    const newBusyCount = Object.keys(cloudOrders).length;
+                    if (newBusyCount > lastKnownBusyCount) {
+                        playNotificationSound();
+                    }
+                    lastKnownBusyCount = newBusyCount;
+                    appData.activeTableOrders = cloudOrders;
+                    localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
+                    renderTablesMap();
+                    renderTableSelects();
+                    renderOrdersHistory();
+                }
+                updateCloudBadge(true);
+            } catch (e) {
+                updateCloudBadge(false);
+            }
+        }
+
+        function updateCloudBadge(isOnline) {
+            const dot = document.getElementById('cloud-dot');
+            const txt = document.getElementById('cloud-text');
+            if (!dot || !txt) return;
+            if (isOnline) {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                txt.innerText = "متصل سحابياً";
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-gray-400";
+                txt.innerText = "وضع محلي";
+            }
+        }
 
         function saveData() {
-            localStorage.setItem('custom_cafe_pos_data', JSON.stringify(appData));
+            localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
+            lastKnownBusyCount = Object.keys(appData.activeTableOrders || {}).length;
+            syncToCloud();
             updateUI();
         }
 
-        // تحديث واجهة المستخدم بالكامل
+        // تشغيل شاشة العميل إذا مسح الباركود
+        async function initCustomerMode() {
+            document.getElementById('cashier-header').classList.add('hidden');
+            document.getElementById('cashier-main').classList.add('hidden');
+            document.getElementById('customer-qr-app').classList.remove('hidden');
+            document.getElementById('cust-table-num').innerText = customerTableParam;
+
+            const dbUrl = getCleanDbUrl();
+            if (dbUrl) {
+                try {
+                    const res = await fetch(`${dbUrl}/cafeState.json`);
+                    const cloudState = await res.json();
+                    if (cloudState) {
+                        appData.cafeName = cloudState.cafeName || appData.cafeName;
+                        appData.cafeSub = cloudState.cafeSub || appData.cafeSub;
+                        appData.menu = cloudState.menu || appData.menu;
+                    }
+                } catch (e) {}
+            }
+            document.getElementById('cust-cafe-name').innerText = appData.cafeName;
+            document.getElementById('cust-cafe-sub').innerText = appData.cafeSub;
+            document.title = appData.cafeName + " - طاولة " + customerTableParam;
+            renderCustomerMenu();
+        }
+
+        function renderCustomerMenu() {
+            const container = document.getElementById('cust-menu-list');
+            container.innerHTML = appData.menu.map(item => {
+                const inCart = customerCart.find(i => i.id === item.id);
+                const qty = inCart ? inCart.qty : 0;
+                return `
+                    <div class="bg-white p-3.5 rounded-xl shadow-sm border flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded">${item.category}</span>
+                            <h4 class="font-bold text-sm text-gray-800 mt-1">${item.name}</h4>
+                            <span class="text-xs text-amber-600 font-extrabold">${item.price.toFixed(3)} ر.ع</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${qty > 0 ? `<button onclick="updateCustCart(${item.id}, -1)" class="w-8 h-8 bg-gray-200 rounded-lg font-bold">-</button><span class="text-sm font-bold w-4 text-center">${qty}</span>` : ''}
+                            <button onclick="updateCustCart(${item.id}, 1)" class="px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold">+ إضافة</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const total = customerCart.reduce((s, i) => s + (i.price * i.qty), 0);
+            document.getElementById('cust-cart-total').innerText = total.toFixed(3) + " ر.ع";
+        }
+
+        function updateCustCart(id, delta) {
+            const item = appData.menu.find(i => i.id === id);
+            const existing = customerCart.find(i => i.id === id);
+            if (existing) {
+                existing.qty += delta;
+                if (existing.qty <= 0) customerCart = customerCart.filter(i => i.id !== id);
+            } else if (delta > 0) {
+                customerCart.push({ ...item, qty: 1 });
+            }
+            renderCustomerMenu();
+        }
+
+        async function sendRealCustomerOrder() {
+            if (customerCart.length === 0) return alert("يرجى اختيار مشروب أو صنف أولاً!");
+            const dbUrl = getCleanDbUrl();
+            if (!dbUrl) return alert("لم يتم ربط قاعدة البيانات السحابية في إعدادات الكاشير بعد!");
+
+            const btn = document.getElementById('cust-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<span>جاري إرسال الطلب للكاشير...</span>`;
+
+            const orderPayload = {
+                items: customerCart,
+                note: document.getElementById('cust-order-note').value,
+                time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
+                source: 'باركود QR'
+            };
+
+            try {
+                await fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`, {
+                    method: 'PUT',
+                    body: JSON.stringify(orderPayload)
+                });
+                customerCart = [];
+                document.getElementById('cust-order-note').value = '';
+                renderCustomerMenu();
+                alert("تم استلام طلبك لدى الكاشير بنجاح! جاري التحضير ☕");
+            } catch (e) {
+                alert("حدث خطأ في الاتصال، يرجى إبلاغ الكاشير.");
+            }
+            btn.disabled = false;
+            btn.innerHTML = `<span>إرسال الطلب للكاشير</span><span id="cust-cart-total">0.000 ر.ع</span>`;
+        }
+
+        // تحديث واجهة الكاشير
         function updateUI() {
-            // تحديث الاسم في الهيدر والمحاكي والإعدادات
             document.getElementById('header-cafe-name').innerText = appData.cafeName;
             document.getElementById('header-cafe-sub').innerText = appData.cafeSub;
-            document.getElementById('qr-sim-cafe-name').innerText = appData.cafeName;
             document.getElementById('setting-cafe-name').value = appData.cafeName;
             document.getElementById('setting-cafe-sub').value = appData.cafeSub;
             document.getElementById('setting-tables-count').value = appData.tablesCount;
+            document.getElementById('setting-firebase-url').value = appData.firebaseUrl || '';
             document.title = appData.cafeName + " - نظام الكاشير";
 
             renderCategories();
@@ -356,7 +541,6 @@
             renderSettingsMenu();
         }
 
-        // التنقل بين التبويبات
         function switchTab(tabName) {
             ['pos', 'tables', 'qr', 'orders', 'settings'].forEach(t => {
                 document.getElementById('view-' + t).classList.add('hidden');
@@ -369,7 +553,6 @@
             activeBtn.classList.remove('text-gray-300');
         }
 
-        // عرض الفئات في الكاشير
         function renderCategories() {
             const container = document.getElementById('pos-categories');
             container.innerHTML = appData.categories.map(cat => `
@@ -385,7 +568,6 @@
             renderMenuItems();
         }
 
-        // عرض الأصناف في الكاشير
         function renderMenuItems() {
             const container = document.getElementById('pos-items');
             const filtered = currentCategory === "الكل" ? appData.menu : appData.menu.filter(i => i.category === currentCategory);
@@ -403,15 +585,11 @@
             `).join('');
         }
 
-        // إدارة السلة
         function addToCart(id) {
             const item = appData.menu.find(i => i.id === id);
             const existing = currentCart.find(i => i.id === id);
-            if (existing) {
-                existing.qty += 1;
-            } else {
-                currentCart.push({ ...item, qty: 1 });
-            }
+            if (existing) existing.qty += 1;
+            else currentCart.push({ ...item, qty: 1 });
             renderCart();
         }
 
@@ -419,9 +597,7 @@
             const item = currentCart.find(i => i.id === id);
             if (!item) return;
             item.qty += delta;
-            if (item.qty <= 0) {
-                currentCart = currentCart.filter(i => i.id !== id);
-            }
+            if (item.qty <= 0) currentCart = currentCart.filter(i => i.id !== id);
             renderCart();
         }
 
@@ -435,11 +611,10 @@
         function renderCart() {
             const container = document.getElementById('cart-items');
             if (currentCart.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-400 py-12"><i class="fa-solid fa-mug-saucer text-4xl mb-2"></i><p class="text-sm">السلة فارغة، اختر الأصناف للبدء</p></div>`;
+                container.innerHTML = `<div class="text-center text-gray-400 py-12"><i class="fa-solid fa-mug-saucer text-4xl mb-2"></i><p class="text-sm">السلة فارغة</p></div>`;
                 document.getElementById('cart-total').innerText = "0.000 ر.ع";
                 return;
             }
-
             let total = 0;
             container.innerHTML = currentCart.map(item => {
                 const itemTotal = item.price * item.qty;
@@ -448,7 +623,7 @@
                     <div class="flex justify-between items-center bg-gray-50 p-2.5 rounded-lg border border-gray-200">
                         <div>
                             <h4 class="font-bold text-sm text-gray-800">${item.name}</h4>
-                            <span class="text-xs text-gray-500">${item.price.toFixed(3)} ر.ع للواحد</span>
+                            <span class="text-xs text-gray-500">${item.price.toFixed(3)} ر.ع</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="changeQty(${item.id}, -1)" class="w-6 h-6 bg-gray-200 rounded text-gray-700 font-bold">-</button>
@@ -458,11 +633,9 @@
                     </div>
                 `;
             }).join('');
-
             document.getElementById('cart-total').innerText = total.toFixed(3) + " ر.ع";
         }
 
-        // خيارات الطاولات
         function toggleTableSelect() {
             const type = document.getElementById('order-type').value;
             document.getElementById('table-select-wrapper').style.display = type === 'table' ? 'block' : 'none';
@@ -470,71 +643,57 @@
 
         function renderTableSelects() {
             const posSelect = document.getElementById('order-table');
-            const qrSelect = document.getElementById('qr-sim-table');
             let options = '';
+            const activeOrders = appData.activeTableOrders || {};
             for (let i = 1; i <= appData.tablesCount; i++) {
-                const isBusy = appData.activeTableOrders[i] ? ' (مشغولة)' : '';
+                const isBusy = activeOrders[i] ? ' (مشغولة)' : '';
                 options += `<option value="${i}">طاولة ${i}${isBusy}</option>`;
             }
             posSelect.innerHTML = options;
-            qrSelect.innerHTML = options;
         }
 
-        // حفظ الطلب (تعليق للطاولة أو دفع فوري)
         function submitOrder(status) {
             if (currentCart.length === 0) return alert("يرجى اختيار أصناف أولاً!");
-
             const orderType = document.getElementById('order-type').value;
             const tableNum = document.getElementById('order-table').value;
             const customerName = document.getElementById('customer-name').value || "عميل";
             const total = currentCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
+            if (!appData.activeTableOrders) appData.activeTableOrders = {};
+
             if (status === 'hold') {
-                if (orderType !== 'table') return alert("تعليق الطلب متاح للطلبات المحلية (الطاولات) فقط.");
-                
-                // دمج مع طلب الطاولة الحالي إن وجد
-                if (appData.activeTableOrders[tableNum]) {
-                    currentCart.forEach(newItem => {
-                        const existing = appData.activeTableOrders[tableNum].items.find(i => i.id === newItem.id);
-                        if (existing) existing.qty += newItem.qty;
-                        else appData.activeTableOrders[tableNum].items.push(newItem);
-                    });
-                } else {
-                    appData.activeTableOrders[tableNum] = {
-                        items: [...currentCart],
-                        customer: customerName,
-                        time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
-                        source: 'كاشير'
-                    };
-                }
+                if (orderType !== 'table') return alert("تعليق الطلب متاح للطاولات فقط.");
+                appData.activeTableOrders[tableNum] = {
+                    items: [...currentCart],
+                    customer: customerName,
+                    time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
+                    source: 'كاشير'
+                };
                 clearCart();
                 saveData();
-                alert(`تم تسجيل الطلب على طاولة رقم (${tableNum}) بنجاح!`);
+                alert(`تم تعليق الطلب على طاولة (${tableNum})`);
             } else {
-                // دفع وإغلاق
-                const orderRecord = {
+                appData.completedOrders.unshift({
                     id: Date.now().toString().slice(-5),
                     type: orderType === 'table' ? `طاولة ${tableNum}` : 'سفري',
                     items: currentCart.map(i => `${i.name} (×${i.qty})`).join('، '),
                     time: new Date().toLocaleString('ar-OM'),
                     total: total
-                };
-                appData.completedOrders.unshift(orderRecord);
-
+                });
                 if (orderType === 'table' && appData.activeTableOrders[tableNum]) {
                     delete appData.activeTableOrders[tableNum];
                 }
                 clearCart();
                 saveData();
-                alert("تم إتمام الدفع وحفظ الفاتورة بنجاح!");
+                alert("تم إتمام الدفع وإغلاق الطلب!");
             }
         }
 
-        // خريطة الطاولات التفاعلية
         function renderTablesMap() {
             const grid = document.getElementById('tables-grid');
             const badge = document.getElementById('busy-tables-badge');
-            const busyCount = Object.keys(appData.activeTableOrders).length;
+            const activeOrders = appData.activeTableOrders || {};
+            const busyCount = Object.keys(activeOrders).length;
 
             if (busyCount > 0) {
                 badge.innerText = busyCount;
@@ -545,18 +704,18 @@
 
             let html = '';
             for (let i = 1; i <= appData.tablesCount; i++) {
-                const activeOrder = appData.activeTableOrders[i];
-                if (activeOrder) {
+                const activeOrder = activeOrders[i];
+                if (activeOrder && activeOrder.items) {
                     const total = activeOrder.items.reduce((s, item) => s + (item.price * item.qty), 0);
                     html += `
                         <div class="bg-red-50 border-2 border-red-500 rounded-xl p-4 flex flex-col justify-between shadow-sm">
                             <div class="flex justify-between items-start">
                                 <span class="font-extrabold text-lg text-red-700">طاولة ${i}</span>
-                                <span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">${activeOrder.source}</span>
+                                <span class="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">${activeOrder.source || 'طلب'}</span>
                             </div>
-                            <div class="my-3 text-xs text-gray-700 space-y-1 max-h-24 overflow-y-auto">
+                            <div class="my-3 text-xs text-gray-700 space-y-1 max-h-28 overflow-y-auto">
                                 ${activeOrder.items.map(item => `<div>• ${item.name} <b>(×${item.qty})</b></div>`).join('')}
-                                ${activeOrder.note ? `<div class="text-amber-700 font-bold mt-1">ملاحظة: ${activeOrder.note}</div>` : ''}
+                                ${activeOrder.note ? `<div class="text-amber-800 bg-amber-100 p-1 rounded font-bold mt-1">ملاحظة: ${activeOrder.note}</div>` : ''}
                             </div>
                             <div class="border-t border-red-200 pt-2">
                                 <div class="flex justify-between font-bold text-sm text-red-900 mb-2">
@@ -616,95 +775,36 @@
             saveData();
         }
 
-        // قسم الباركود (QR) ومحاكي طلب العميل الذاتي
         function renderQRSection() {
             const qrContainer = document.getElementById('qr-cards-container');
             const baseUrl = window.location.href.split('?')[0];
+            const dbParam = appData.firebaseUrl ? `&db=${encodeURIComponent(appData.firebaseUrl)}` : '';
             let qrHtml = '';
 
             for (let i = 1; i <= appData.tablesCount; i++) {
-                const tableUrl = `${baseUrl}?table=${i}`;
-                const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableUrl)}`;
+                const tableUrl = `${baseUrl}?table=${i}${dbParam}`;
+                const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(tableUrl)}`;
                 qrHtml += `
-                    <div class="border rounded-lg p-3 text-center bg-gray-50 flex flex-col items-center">
+                    <div class="border rounded-xl p-4 text-center bg-gray-50 flex flex-col items-center shadow-sm">
                         <span class="font-bold text-xs text-amber-700 mb-1">${appData.cafeName}</span>
-                        <img src="${qrImgUrl}" alt="QR Table ${i}" class="w-24 h-24 mb-2 border p-1 bg-white rounded">
-                        <span class="font-extrabold text-sm text-gray-800">طاولة رقم ${i}</span>
-                        <span class="text-[10px] text-gray-500">امسح للطلب المباشر</span>
+                        <img src="${qrImgUrl}" alt="QR Table ${i}" class="w-28 h-28 my-2 border p-1 bg-white rounded-lg">
+                        <span class="font-extrabold text-base text-gray-800">طاولة رقم ${i}</span>
+                        <a href="${tableUrl}" target="_blank" class="text-[11px] text-blue-600 hover:underline mt-1">معاينة رابط الطاولة ↗</a>
                     </div>
                 `;
             }
             qrContainer.innerHTML = qrHtml;
-
-            // تحديث منيو جوال العميل
-            const simMenu = document.getElementById('qr-sim-menu');
-            simMenu.innerHTML = appData.menu.map(item => {
-                const inSim = qrSimCart.find(i => i.id === item.id);
-                const qty = inSim ? inSim.qty : 0;
-                return `
-                    <div class="bg-white p-2.5 rounded-lg shadow-sm border flex justify-between items-center">
-                        <div>
-                            <h4 class="font-bold text-xs text-gray-800">${item.name}</h4>
-                            <span class="text-xs text-amber-600 font-bold">${item.price.toFixed(3)} ر.ع</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            ${qty > 0 ? `<button onclick="updateSimCart(${item.id}, -1)" class="w-6 h-6 bg-gray-200 rounded text-xs font-bold">-</button><span class="text-xs font-bold">${qty}</span>` : ''}
-                            <button onclick="updateSimCart(${item.id}, 1)" class="px-2 py-1 bg-amber-600 text-white rounded text-xs font-bold">+ أضف</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            const simTotal = qrSimCart.reduce((s, i) => s + (i.price * i.qty), 0);
-            document.getElementById('qr-sim-total').innerText = simTotal.toFixed(3) + " ر.ع";
         }
 
-        function updateSimCart(id, delta) {
-            const item = appData.menu.find(i => i.id === id);
-            const existing = qrSimCart.find(i => i.id === id);
-            if (existing) {
-                existing.qty += delta;
-                if (existing.qty <= 0) qrSimCart = qrSimCart.filter(i => i.id !== id);
-            } else if (delta > 0) {
-                qrSimCart.push({ ...item, qty: 1 });
-            }
-            renderQRSection();
-        }
-
-        function submitCustomerQROrder() {
-            if (qrSimCart.length === 0) return alert("يرجى اختيار مشروب أو صنف أولاً من قائمة الجوال!");
-            const tableNum = document.getElementById('qr-sim-table').value;
-            const note = document.getElementById('qr-sim-note').value;
-
-            appData.activeTableOrders[tableNum] = {
-                items: [...qrSimCart],
-                note: note,
-                time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
-                source: 'طلب باركود QR'
-            };
-
-            qrSimCart = [];
-            document.getElementById('qr-sim-note').value = '';
-            saveData();
-            alert(`تم إرسال طلبك من الطاولة (${tableNum}) إلى الكاشير! تفقد شاشة الطاولات الآن.`);
-            switchTab('tables');
-        }
-
-        // إرسال الفاتورة عبر الواتساب والطباعة
         function sendWhatsApp() {
             if (currentCart.length === 0) return alert("السلة فارغة!");
             const phone = document.getElementById('customer-phone').value.replace(/\D/g, '');
-            if (!phone) return alert("يرجى إدخال رقم جوال العميل أولاً!");
-
+            if (!phone) return alert("يرجى إدخال رقم جوال العميل!");
             const fullPhone = phone.startsWith('968') ? phone : '968' + phone;
             const total = currentCart.reduce((s, i) => s + (i.price * i.qty), 0);
-            let msg = `*مرحباً بك في ${appData.cafeName}* ☕\n`;
-            msg += `تفاصيل فاتورتك:\n------------------\n`;
-            currentCart.forEach(i => {
-                msg += `• ${i.name} (×${i.qty}) = ${(i.price * i.qty).toFixed(3)} ر.ع\n`;
-            });
+            let msg = `*مرحباً بك في ${appData.cafeName}* ☕\nتفاصيل فاتورتك:\n------------------\n`;
+            currentCart.forEach(i => { msg += `• ${i.name} (×${i.qty}) = ${(i.price * i.qty).toFixed(3)} ر.ع\n`; });
             msg += `------------------\n*الإجمالي: ${total.toFixed(3)} ر.ع*\nشكراً لزيارتكم!`;
-
             window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
@@ -713,7 +813,6 @@
             document.getElementById('print-cafe-name').innerText = appData.cafeName;
             const type = document.getElementById('order-type').value === 'table' ? 'طاولة ' + document.getElementById('order-table').value : 'طلب سفري';
             document.getElementById('print-order-info').innerText = `${type} | ${new Date().toLocaleString('ar-OM')}`;
-
             let total = 0;
             document.getElementById('print-items').innerHTML = currentCart.map(i => {
                 const sub = i.price * i.qty;
@@ -724,12 +823,11 @@
             window.print();
         }
 
-        // التقارير والإعدادات
         function renderOrdersHistory() {
             const totalSales = appData.completedOrders.reduce((s, o) => s + o.total, 0);
             document.getElementById('stat-total-sales').innerText = totalSales.toFixed(3) + " ر.ع";
             document.getElementById('stat-total-orders').innerText = appData.completedOrders.length;
-            document.getElementById('stat-active-tables').innerText = Object.keys(appData.activeTableOrders).length;
+            document.getElementById('stat-active-tables').innerText = Object.keys(appData.activeTableOrders || {}).length;
 
             const tbody = document.getElementById('orders-history-body');
             tbody.innerHTML = appData.completedOrders.map(o => `
@@ -744,32 +842,26 @@
         }
 
         function clearSalesHistory() {
-            if (confirm("هل أنت متأكد من تصفير سجل المبيعات بالكامل؟")) {
+            if (confirm("هل أنت متأكد من تصفير سجل المبيعات؟")) {
                 appData.completedOrders = [];
                 saveData();
             }
         }
 
         function saveCafeSettings() {
-            const newName = document.getElementById('setting-cafe-name').value.trim();
-            const newSub = document.getElementById('setting-cafe-sub').value.trim();
-            const newCount = parseInt(document.getElementById('setting-tables-count').value) || 10;
-
-            if (newName) appData.cafeName = newName;
-            if (newSub) appData.cafeSub = newSub;
-            appData.tablesCount = newCount;
-
+            appData.firebaseUrl = document.getElementById('setting-firebase-url').value.trim();
+            appData.cafeName = document.getElementById('setting-cafe-name').value.trim() || appData.cafeName;
+            appData.cafeSub = document.getElementById('setting-cafe-sub').value.trim() || appData.cafeSub;
+            appData.tablesCount = parseInt(document.getElementById('setting-tables-count').value) || 10;
             saveData();
-            alert("تم تحديث اسم الكافيه والإعدادات بنجاح!");
+            alert("تم حفظ الإعدادات ومزامنتها سحابياً بنجاح!");
         }
 
         function addNewMenuItem() {
             const name = document.getElementById('new-item-name').value.trim();
             const price = parseFloat(document.getElementById('new-item-price').value);
             const category = document.getElementById('new-item-cat').value;
-
             if (!name || isNaN(price)) return alert("يرجى إدخال اسم الصنف والسعر بشكل صحيح!");
-
             appData.menu.push({ id: Date.now(), name, price, category });
             document.getElementById('new-item-name').value = '';
             document.getElementById('new-item-price').value = '';
@@ -799,8 +891,15 @@
             `).join('');
         }
 
-        // تشغيل النظام عند فتح الصفحة
-        window.onload = updateUI;
+        window.onload = () => {
+            if (customerTableParam) {
+                initCustomerMode();
+            } else {
+                updateUI();
+                syncToCloud();
+                setInterval(listenFromCloud, 3000); // فحص الطلبات الجديدة كل 3 ثوانٍ
+            }
+        };
     </script>
 </body>
 </html>
