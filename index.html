@@ -7,12 +7,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- مكتبة تحويل الفاتورة إلى PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body { font-family: 'Tajawal', sans-serif; }
         .active-tab { background-color: #d97706 !important; color: #ffffff !important; }
         .active-cat { background-color: #d97706 !important; color: white !important; }
         .safe-bottom { padding-bottom: max(1.2rem, env(safe-area-inset-bottom)); }
         
+        /* إخفاء شريط التمرير مع بقاء التمرير متاحاً */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         @media print {
             body * { visibility: hidden !important; }
             #receipt-modal-content, #receipt-modal-content * { visibility: visible !important; }
@@ -25,6 +31,7 @@
                 padding: 10px !important;
                 box-shadow: none !important;
                 border: none !important;
+                background: white !important;
             }
         }
     </style>
@@ -39,7 +46,7 @@
             </div>
             <div>
                 <h3 class="font-black text-lg text-slate-800">دخول الموظفين</h3>
-                <p class="text-xs text-slate-500 mt-1">أدخل رمز PIN للكاشير (الافتراضي: 1234)</p>
+                <p class="text-xs text-slate-500 mt-1">أدخل رمز المرور الخاص بالكاشير</p>
             </div>
             <input type="password" id="pin-input" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter') verifyPin()" class="w-full text-center text-2xl tracking-[0.5em] font-mono py-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-600 focus:outline-none">
             <div class="grid grid-cols-2 gap-2">
@@ -65,7 +72,7 @@
         </header>
 
         <!-- كرت تتبع حالة الطلب المباشر للزبون -->
-        <div id="cust-order-status-card" class="hidden m-4 p-4 rounded-2xl bg-white/90 backdrop-blur border border-amber-200 shadow-md">
+        <div id="cust-order-status-card" class="hidden m-4 mb-1 p-4 rounded-2xl bg-white/95 backdrop-blur border border-amber-200 shadow-md">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2">
                     <span class="relative flex h-3 w-3">
@@ -77,23 +84,42 @@
                 <span id="cust-status-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700">تم الاستلام</span>
             </div>
             <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-                <span>رقم الطلب: <b id="cust-order-id-display" class="text-slate-800 font-mono">#0</b></span>
+                <span>وقت الطلب: <b id="cust-order-id-display" class="text-slate-800 font-mono">#0</b></span>
                 <span>المجموع: <b id="cust-order-summary-total" class="text-amber-700 font-bold font-mono">0.000 ر.ع</b></span>
             </div>
-            <div id="cust-order-items-preview" class="mt-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-xl space-y-1"></div>
+            <div id="cust-order-items-preview" class="mt-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-xl space-y-1 max-h-32 overflow-y-auto"></div>
+            <p class="text-[10px] text-amber-700 mt-2 font-bold text-center">💡 يمكنك إضافة أصناف جديدة وسيتم دمجها مع طلبك الحالي</p>
         </div>
 
-        <!-- قائمة المنيو للزبون -->
-        <div class="p-4 flex-1 pb-36">
-            <h2 class="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
-                <i class="fa-solid fa-mug-hot text-amber-600"></i> قائمة المشروبات والمأكولات
-            </h2>
-            <div id="cust-menu-list" class="space-y-3"></div>
+        <!-- شريط التصنيفات للزبون + قائمة المنيو مقسمة -->
+        <div class="p-4 flex-1 pb-44">
+            <div class="sticky top-[108px] z-10 bg-slate-100/90 backdrop-blur py-2 -mx-4 px-4 mb-3 border-b border-slate-200/60">
+                <div id="cust-categories" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+            </div>
+            <div id="cust-menu-list" class="space-y-5"></div>
         </div>
 
-        <!-- شريط الطلب السفلي للزبون -->
-        <div class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 safe-bottom z-30 shadow-[0_-4px_15px_rgba(0,0,0,0.06)]">
-            <input type="text" id="cust-order-note" placeholder="ملاحظات إضافية على الطلب..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl mb-2 bg-slate-50 focus:bg-white focus:outline-amber-600 transition">
+        <!-- شريط الطلب السفلي للزبون مع سلة قابلة للتعديل -->
+        <div class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 safe-bottom z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+            
+            <!-- نافذة معاينة وتعديل سلة الزبون -->
+            <div id="cust-cart-drawer" class="hidden mb-3 max-h-48 overflow-y-auto bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-2">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-1.5">
+                    <span class="text-xs font-extrabold text-slate-700">محتويات سلتك الحالية:</span>
+                    <button onclick="clearCustomerCart()" class="text-[11px] text-red-500 font-bold hover:underline">إفراغ السلة</button>
+                </div>
+                <div id="cust-cart-items-list" class="space-y-1.5"></div>
+            </div>
+
+            <div class="flex gap-2 mb-2">
+                <button onclick="toggleCustCartDrawer()" id="cust-cart-toggle-btn" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition border border-amber-300">
+                    <i class="fa-solid fa-basket-shopping"></i>
+                    <span>السلة (<b id="cust-cart-badge">0</b>)</span>
+                    <i class="fa-solid fa-chevron-up text-[10px]" id="cust-drawer-icon"></i>
+                </button>
+                <input type="text" id="cust-order-note" placeholder="ملاحظات إضافية على الطلب..." class="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-amber-600 transition">
+            </div>
+
             <button onclick="sendRealCustomerOrder()" id="cust-submit-btn" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white py-3 px-4 rounded-xl font-bold flex justify-between items-center transition shadow-lg">
                 <span class="flex items-center gap-2">
                     <i class="fa-solid fa-paper-plane text-amber-400"></i>
@@ -123,7 +149,7 @@
                 </div>
             </div>
 
-            <nav class="flex bg-slate-800 p-1 rounded-xl gap-1 overflow-x-auto max-w-full">
+            <nav class="flex bg-slate-800 p-1 rounded-xl gap-1 overflow-x-auto max-w-full no-scrollbar">
                 <button onclick="switchTab('pos')" id="tab-pos" class="tab-btn active-tab px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-bold transition flex items-center gap-1.5 whitespace-nowrap">
                     <i class="fa-solid fa-cash-register"></i> الكاشير
                 </button>
@@ -149,12 +175,12 @@
             <!-- تبويب 1: الكاشير -->
             <section id="view-pos" class="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 <div class="flex-1 flex flex-col p-4 overflow-y-auto">
-                    <div id="pos-categories" class="flex gap-2 pb-3 overflow-x-auto mb-2"></div>
+                    <div id="pos-categories" class="flex gap-2 pb-3 overflow-x-auto mb-2 no-scrollbar"></div>
                     <div id="pos-items" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3.5 pb-6"></div>
                 </div>
 
                 <!-- سلة الكاشير -->
-                <div class="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-xl max-h-[50vh] lg:max-h-full">
+                <div class="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-xl max-h-[55vh] lg:max-h-full">
                     <div class="p-3.5 bg-slate-50 border-b flex justify-between items-center">
                         <span class="font-extrabold text-sm text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-receipt text-amber-600"></i> الفاتورة الحالية
@@ -175,6 +201,10 @@
                         <div id="table-select-wrapper">
                             <label class="block text-slate-500 mb-1 font-bold">رقم الطاولة</label>
                             <select id="order-table" class="w-full p-2 rounded-lg border border-slate-300 bg-white font-bold"></select>
+                        </div>
+                        <div id="car-number-wrapper" class="hidden">
+                            <label class="block text-slate-500 mb-1 font-bold">رقم السيارة / العميل</label>
+                            <input type="text" id="order-car-num" placeholder="مثال: 4520 ب ب" class="w-full p-2 rounded-lg border border-slate-300 bg-white font-bold focus:outline-amber-600">
                         </div>
                     </div>
 
@@ -266,7 +296,7 @@
                                 <thead class="bg-slate-50 text-slate-600 font-bold">
                                     <tr>
                                         <th class="p-3">رقم الطلب</th>
-                                        <th class="p-3">النوع / الطاولة</th>
+                                        <th class="p-3">النوع / الطاولة / السيارة</th>
                                         <th class="p-3">طريقة الدفع</th>
                                         <th class="p-3">الأصناف والتخصيص</th>
                                         <th class="p-3">الوقت والتاريخ</th>
@@ -307,7 +337,6 @@
                             <i class="fa-solid fa-palette text-amber-600"></i> تخصيص المظهر والخلفيات والصور العلوية
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- مظهر شاشة الزبون -->
                             <div class="p-3.5 bg-slate-50 border rounded-xl space-y-2">
                                 <span class="font-bold text-xs text-amber-800 flex items-center gap-1.5">
                                     <i class="fa-solid fa-mobile-screen"></i> واجهة هاتف الزبون
@@ -322,7 +351,6 @@
                                 </div>
                             </div>
 
-                            <!-- مظهر شاشة الكاشير -->
                             <div class="p-3.5 bg-slate-50 border rounded-xl space-y-2">
                                 <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
                                     <i class="fa-solid fa-desktop"></i> واجهة الكاشير الأساسية
@@ -366,7 +394,7 @@
                         </button>
                     </div>
 
-                    <!-- إدارة تخصيصات المشروبات (الأحجام، الحليب، السكر) -->
+                    <!-- إدارة تخصيصات المشروبات -->
                     <div class="bg-white p-5 rounded-2xl shadow space-y-4">
                         <div>
                             <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
@@ -497,6 +525,7 @@
             <div class="text-center py-2">
                 <span class="text-xs text-slate-400">المبلغ المطلوب سداده</span>
                 <h2 id="pay-modal-amount" class="text-2xl font-black text-amber-600 font-mono mt-1">0.000 ر.ع</h2>
+                <p id="pay-modal-subinfo" class="text-xs font-bold text-slate-600 mt-1"></p>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -512,21 +541,24 @@
         </div>
     </div>
 
-    <!-- ==================== 5. نافذة الفاتورة الحرارية ==================== -->
+    <!-- ==================== 5. نافذة الفاتورة الحرارية و PDF ==================== -->
     <div id="receipt-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center pb-2 border-b">
-                <span class="font-bold text-sm text-slate-800">معاينة الفاتورة للطباعة</span>
+                <span class="font-bold text-sm text-slate-800">معاينة الفاتورة</span>
                 <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             
-            <div id="receipt-modal-content" class="my-4 p-4 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-mono text-center text-xs overflow-y-auto">
+            <div id="receipt-modal-content" class="my-4 p-4 border border-dashed border-slate-300 rounded-xl bg-white font-mono text-center text-xs overflow-y-auto">
                 <h2 id="rec-cafe-name" class="text-base font-extrabold text-slate-900">مسرى كافيه</h2>
                 <p id="rec-cafe-sub" class="text-[10px] text-slate-500 mt-0.5"></p>
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
                 <div class="flex justify-between text-[11px] text-slate-600">
                     <span>طلب رقم: <b id="rec-daily-id" class="text-sm text-slate-900">#0</b></span>
-                    <span id="rec-type">طاولة 1</span>
+                    <span id="rec-type" class="font-bold text-slate-800">طاولة 1</span>
+                </div>
+                <div id="rec-car-row" class="hidden text-right text-[11px] bg-amber-50 text-amber-900 p-1 rounded font-bold mt-1">
+                    🚗 السيارة / العميل: <span id="rec-car-num"></span>
                 </div>
                 <div class="flex justify-between text-[10px] text-slate-500 mt-1">
                     <span id="rec-time"></span>
@@ -545,9 +577,12 @@
                 <p class="text-[10px] text-slate-400 mt-2">شكراً لزيارتكم! نتشرف بحضوركم دائماً ☕</p>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 pt-2">
-                <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow">
+            <div class="grid grid-cols-3 gap-2 pt-2">
+                <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow">
                     <i class="fa-solid fa-print"></i> طباعة
+                </button>
+                <button onclick="downloadReceiptPDF()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow">
+                    <i class="fa-solid fa-file-pdf"></i> حفظ PDF
                 </button>
                 <button onclick="closeReceiptModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
                     إغلاق
@@ -623,6 +658,7 @@
         });
 
         let currentCategory = "الكل";
+        let currentCustomerCategory = "الكل";
         let currentCart = [];
         let customerCart = [];
         let lastKnownBusyCount = 0;
@@ -632,7 +668,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const customerTableParam = urlParams.get('table');
 
-        // حماية من ثغرات XSS
         function escapeHtml(text) {
             if (!text) return '';
             return String(text)
@@ -886,39 +921,137 @@
             const finalPrice = selectedItemForCustomization.price + sizeAdd + milkAdd;
             const desc = `${sizeText}، ${milkText}، ${sugarText}`;
 
-            const customizedCartItem = {
-                id: selectedItemForCustomization.id,
-                cartItemId: Date.now() + Math.random(),
-                name: selectedItemForCustomization.name,
-                customization: desc,
-                price: finalPrice,
-                qty: 1
-            };
+            const targetCart = customizerSource === 'customer' ? customerCart : currentCart;
+            const existing = targetCart.find(i => i.id === selectedItemForCustomization.id && i.customization === desc);
+
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                targetCart.push({
+                    id: selectedItemForCustomization.id,
+                    cartItemId: Date.now() + Math.random(),
+                    name: selectedItemForCustomization.name,
+                    customization: desc,
+                    price: finalPrice,
+                    qty: 1
+                });
+            }
 
             if (customizerSource === 'customer') {
-                customerCart.push(customizedCartItem);
                 renderCustomerMenu();
+                renderCustomerCartDrawer();
             } else {
-                currentCart.push(customizedCartItem);
                 renderCart();
+                renderMenuItems();
             }
 
             closeCustomizerModal();
         }
 
+        // ==================== التحكم بسلة الزبون وتقسيم المنيو ====================
         function addQuickCustomerCart(id) {
             const item = appData.menu.find(i => i.id === id);
             if (!item || item.available === false) return;
 
-            customerCart.push({
-                id: item.id,
-                cartItemId: Date.now() + Math.random(),
-                name: item.name,
-                customization: 'افتراضي',
-                price: item.price,
-                qty: 1
-            });
+            const existing = customerCart.find(i => i.id === item.id && i.customization === 'افتراضي');
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                customerCart.push({
+                    id: item.id,
+                    cartItemId: Date.now() + Math.random(),
+                    name: item.name,
+                    customization: 'افتراضي',
+                    price: item.price,
+                    qty: 1
+                });
+            }
             renderCustomerMenu();
+            renderCustomerCartDrawer();
+        }
+
+        function removeQuickCustomerCart(id) {
+            for (let i = customerCart.length - 1; i >= 0; i--) {
+                if (customerCart[i].id === id) {
+                    customerCart[i].qty -= 1;
+                    if (customerCart[i].qty <= 0) customerCart.splice(i, 1);
+                    break;
+                }
+            }
+            renderCustomerMenu();
+            renderCustomerCartDrawer();
+        }
+
+        function changeCustomerCartItemQty(cartItemId, delta) {
+            const item = customerCart.find(i => i.cartItemId === cartItemId);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) {
+                customerCart = customerCart.filter(i => i.cartItemId !== cartItemId);
+            }
+            renderCustomerMenu();
+            renderCustomerCartDrawer();
+        }
+
+        function clearCustomerCart() {
+            customerCart = [];
+            document.getElementById('cust-cart-drawer').classList.add('hidden');
+            renderCustomerMenu();
+            renderCustomerCartDrawer();
+        }
+
+        function toggleCustCartDrawer() {
+            if (customerCart.length === 0) return alert("سلتك فارغة حالياً، اختر مشروبك المفضل أولاً!");
+            const drawer = document.getElementById('cust-cart-drawer');
+            drawer.classList.toggle('hidden');
+            renderCustomerCartDrawer();
+        }
+
+        function renderCustomerCartDrawer() {
+            const totalCount = customerCart.reduce((s, i) => s + i.qty, 0);
+            const badge = document.getElementById('cust-cart-badge');
+            if (badge) badge.innerText = totalCount;
+
+            const list = document.getElementById('cust-cart-items-list');
+            if (!list) return;
+
+            if (customerCart.length === 0) {
+                document.getElementById('cust-cart-drawer').classList.add('hidden');
+                list.innerHTML = '';
+                return;
+            }
+
+            list.innerHTML = customerCart.map(item => `
+                <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 text-xs">
+                    <div>
+                        <div class="font-bold text-slate-800">${escapeHtml(item.name)}</div>
+                        <div class="text-[10px] text-slate-400">${escapeHtml(item.customization)}</div>
+                        <div class="text-[10px] text-amber-700 font-mono font-bold">${(item.price * item.qty).toFixed(3)} ر.ع</div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="changeCustomerCartItemQty(${item.cartItemId}, -1)" class="w-6 h-6 bg-red-100 text-red-700 rounded-md font-bold">-</button>
+                        <span class="font-mono font-bold w-4 text-center">${item.qty}</span>
+                        <button onclick="changeCustomerCartItemQty(${item.cartItemId}, 1)" class="w-6 h-6 bg-amber-600 text-white rounded-md font-bold">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setCustomerCategory(cat) {
+            currentCustomerCategory = cat;
+            renderCustomerCategories();
+            renderCustomerMenu();
+        }
+
+        function renderCustomerCategories() {
+            rebuildCategories();
+            const container = document.getElementById('cust-categories');
+            if (!container) return;
+            container.innerHTML = appData.categories.map(cat => `
+                <button onclick="setCustomerCategory('${escapeHtml(cat)}')" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition shadow-sm ${currentCustomerCategory === cat ? 'active-cat' : 'bg-white text-slate-700 border border-slate-200'}">
+                    ${escapeHtml(cat)}
+                </button>
+            `).join('');
         }
 
         // ==================== وضع الزبون (QR Mode) ====================
@@ -928,43 +1061,62 @@
             document.getElementById('cust-table-num').innerText = customerTableParam;
 
             applyThemes();
+            renderCustomerCategories();
             await loadCustomerDataAndLiveStatus();
             setInterval(loadCustomerDataAndLiveStatus, 4000);
         }
 
+        // جلب بيانات المنيو وحالة الطاولة فقط دون سحب سجل المبيعات الضخم
         async function loadCustomerDataAndLiveStatus() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
 
             try {
-                const res = await fetch(`${dbUrl}/cafeState.json`);
-                if (res.ok) {
-                    const cloudState = await res.json();
-                    if (cloudState) {
-                        appData.cafeName = cloudState.cafeName || appData.cafeName;
-                        appData.cafeSub = cloudState.cafeSub || appData.cafeSub;
-                        if (cloudState.menu && cloudState.menu.length > 0) appData.menu = cloudState.menu;
-                        if (cloudState.modifiers) appData.modifiers = cloudState.modifiers;
-                        if (cloudState.theme) {
-                            appData.theme = cloudState.theme;
-                            applyThemes();
-                        }
-                        
-                        const activeOrders = cloudState.activeTableOrders || {};
-                        updateCustomerStatusUI(activeOrders[customerTableParam]);
-                    }
+                const [menuRes, modRes, themeRes, nameRes, subRes, orderRes] = await Promise.all([
+                    fetch(`${dbUrl}/cafeState/menu.json`),
+                    fetch(`${dbUrl}/cafeState/modifiers.json`),
+                    fetch(`${dbUrl}/cafeState/theme.json`),
+                    fetch(`${dbUrl}/cafeState/cafeName.json`),
+                    fetch(`${dbUrl}/cafeState/cafeSub.json`),
+                    fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`)
+                ]);
+
+                if (menuRes.ok) {
+                    const menuData = await menuRes.json();
+                    if (menuData && menuData.length > 0) appData.menu = menuData;
+                }
+                if (modRes.ok) {
+                    const modData = await modRes.json();
+                    if (modData) appData.modifiers = modData;
+                }
+                if (themeRes.ok) {
+                    const themeData = await themeRes.json();
+                    if (themeData) { appData.theme = themeData; applyThemes(); }
+                }
+                if (nameRes.ok) {
+                    const nameData = await nameRes.json();
+                    if (nameData) appData.cafeName = nameData;
+                }
+                if (subRes.ok) {
+                    const subData = await subRes.json();
+                    if (subData) appData.cafeSub = subData;
+                }
+                if (orderRes.ok) {
+                    const orderData = await orderRes.json();
+                    updateCustomerStatusUI(orderData);
                 }
             } catch (e) {}
 
             document.getElementById('cust-cafe-name').innerText = appData.cafeName;
             document.getElementById('cust-cafe-sub').innerText = appData.cafeSub;
             document.title = `${appData.cafeName} - طاولة ${customerTableParam}`;
+            renderCustomerCategories();
             renderCustomerMenu();
         }
 
         function updateCustomerStatusUI(order) {
             const card = document.getElementById('cust-order-status-card');
-            if (!order) {
+            if (!order || !order.items) {
                 card.classList.add('hidden');
                 return;
             }
@@ -982,7 +1134,7 @@
                 badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-extrabold";
             }
 
-            document.getElementById('cust-order-id-display').innerText = '#' + (order.dailyNumber || order.time || '1');
+            document.getElementById('cust-order-id-display').innerText = order.time || '';
             const total = (order.items || []).reduce((s, i) => s + (i.price * i.qty), 0);
             document.getElementById('cust-order-summary-total').innerText = total.toFixed(3) + " ر.ع";
 
@@ -997,45 +1149,76 @@
 
         function renderCustomerMenu() {
             const container = document.getElementById('cust-menu-list');
-            container.innerHTML = appData.menu.map(item => {
-                const isAvail = item.available !== false;
-                const inCartItems = customerCart.filter(i => i.id === item.id);
-                const countInCart = inCartItems.reduce((s, i) => s + i.qty, 0);
+            if (!container) return;
 
-                return `
-                    <div class="bg-white/95 backdrop-blur p-3.5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-center ${!isAvail ? 'opacity-50 grayscale' : ''}">
-                        <div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-bold">${escapeHtml(item.category)}</span>
-                                ${!isAvail ? `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold">نفد المخزون</span>` : ''}
-                            </div>
-                            <h4 class="font-bold text-sm text-slate-800 mt-1">${escapeHtml(item.name)}</h4>
-                            <span class="text-xs text-amber-600 font-extrabold font-mono">${item.price.toFixed(3)} ر.ع</span>
-                        </div>
-                        <div>
-                            ${isAvail ? `
-                                <div class="flex items-center gap-1.5">
-                                    <button onclick="openCustomizer(${item.id}, 'customer')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200">
-                                        <i class="fa-solid fa-sliders text-[11px] text-amber-600"></i>
-                                        <span>تخصيص</span>
-                                    </button>
-                                    <button onclick="addQuickCustomerCart(${item.id})" class="px-3 py-1.5 bg-amber-600 active:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
-                                        + إضافة ${countInCart > 0 ? `(${countInCart})` : ''}
-                                    </button>
-                                </div>
-                            ` : `
-                                <span class="text-xs text-slate-400 font-bold">غير متاح</span>
-                            `}
+            const categoriesToRender = currentCustomerCategory === "الكل"
+                ? appData.categories.filter(c => c !== "الكل")
+                : [currentCustomerCategory];
+
+            let html = '';
+            categoriesToRender.forEach(cat => {
+                const itemsInCat = appData.menu.filter(i => (i.category || "عام") === cat);
+                if (itemsInCat.length === 0) return;
+
+                html += `
+                    <div class="space-y-2.5">
+                        <h3 class="font-extrabold text-xs text-amber-800 bg-amber-100/70 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-amber-200/60">
+                            <i class="fa-solid fa-tag text-[10px]"></i>
+                            <span>${escapeHtml(cat)}</span>
+                        </h3>
+                        <div class="space-y-2.5">
+                            ${itemsInCat.map(item => {
+                                const isAvail = item.available !== false;
+                                const inCartItems = customerCart.filter(i => i.id === item.id);
+                                const countInCart = inCartItems.reduce((s, i) => s + i.qty, 0);
+
+                                return `
+                                    <div class="bg-white/95 backdrop-blur p-3.5 rounded-2xl shadow-sm border border-slate-200/80 flex justify-between items-center ${!isAvail ? 'opacity-50 grayscale' : ''}">
+                                        <div>
+                                            <div class="flex items-center gap-1.5">
+                                                <h4 class="font-bold text-sm text-slate-800">${escapeHtml(item.name)}</h4>
+                                                ${!isAvail ? `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold">نفد المخزون</span>` : ''}
+                                            </div>
+                                            <span class="text-xs text-amber-600 font-extrabold font-mono block mt-0.5">${item.price.toFixed(3)} ر.ع</span>
+                                        </div>
+                                        <div>
+                                            ${isAvail ? `
+                                                <div class="flex items-center gap-1.5">
+                                                    <button onclick="openCustomizer(${item.id}, 'customer')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200">
+                                                        <i class="fa-solid fa-sliders text-[11px] text-amber-600"></i>
+                                                        <span>تخصيص</span>
+                                                    </button>
+                                                    <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                                        ${countInCart > 0 ? `
+                                                            <button onclick="removeQuickCustomerCart(${item.id})" class="w-6 h-6 bg-red-100 text-red-700 rounded-lg text-xs font-black flex items-center justify-center">-</button>
+                                                            <span class="text-xs font-mono font-black px-1 text-slate-800">${countInCart}</span>
+                                                        ` : ''}
+                                                        <button onclick="addQuickCustomerCart(${item.id})" class="px-2.5 h-6 bg-amber-600 active:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center justify-center">
+                                                            + ${countInCart === 0 ? 'إضافة' : ''}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ` : `
+                                                <span class="text-xs text-slate-400 font-bold">غير متاح</span>
+                                            `}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
-            }).join('');
+            });
+
+            container.innerHTML = html;
 
             const total = customerCart.reduce((s, i) => s + (i.price * i.qty), 0);
             const totalEl = document.getElementById('cust-cart-total');
             if (totalEl) totalEl.innerText = total.toFixed(3) + " ر.ع";
+            renderCustomerCartDrawer();
         }
 
+        // دمج الطلب الجديد مع طلب الطاولة الحالي بدلاً من مسحه
         async function sendRealCustomerOrder() {
             if (customerCart.length === 0) return alert("يرجى اختيار مشروب أولاً!");
             const dbUrl = getCleanDbUrl();
@@ -1044,16 +1227,41 @@
             const btn = document.getElementById('cust-submit-btn');
             btn.disabled = true;
 
-            const orderPayload = {
-                table: customerTableParam,
-                items: customerCart,
-                note: escapeHtml(document.getElementById('cust-order-note').value),
-                time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
-                status: 'تم الاستلام',
-                source: 'باركود الطاولة'
-            };
-
             try {
+                let mergedItems = [...customerCart];
+                let existingNote = "";
+
+                // التحقق مما إذا كان للطاولة طلب نشط حالياً لدمج الأصناف معه
+                const checkRes = await fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`);
+                if (checkRes.ok) {
+                    const currentOrder = await checkRes.json();
+                    if (currentOrder && Array.isArray(currentOrder.items)) {
+                        const oldItems = [...currentOrder.items];
+                        customerCart.forEach(newItem => {
+                            const match = oldItems.find(old => old.id === newItem.id && old.customization === newItem.customization);
+                            if (match) {
+                                match.qty += newItem.qty;
+                            } else {
+                                oldItems.push(newItem);
+                            }
+                        });
+                        mergedItems = oldItems;
+                        existingNote = currentOrder.note || "";
+                    }
+                }
+
+                const newNoteInput = escapeHtml(document.getElementById('cust-order-note').value.trim());
+                const finalNote = [existingNote, newNoteInput].filter(Boolean).join(" | ");
+
+                const orderPayload = {
+                    table: customerTableParam,
+                    items: mergedItems,
+                    note: finalNote,
+                    time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
+                    status: 'تم الاستلام',
+                    source: 'باركود الطاولة'
+                };
+
                 const res = await fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -1064,6 +1272,7 @@
 
                 customerCart = [];
                 document.getElementById('cust-order-note').value = '';
+                document.getElementById('cust-cart-drawer').classList.add('hidden');
                 renderCustomerMenu();
                 updateCustomerStatusUI(orderPayload);
                 alert("✅ تم إرسال طلبك بنجاح! جاري تحضيره.");
@@ -1113,7 +1322,6 @@
             appData.categories = Array.from(dynamicCats);
         }
 
-        // استخدام PATCH بدلاً من PUT لمنع مسح طلبات الزبائن النشطة بالخطأ
         async function syncToCloud() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
@@ -1229,13 +1437,16 @@
             renderMenuItems();
         }
 
+        // عرض الأصناف في الكاشير مع أزرار الزائد والناقص والعداد
         function renderMenuItems() {
             const container = document.getElementById('pos-items');
             const filtered = currentCategory === "الكل" ? appData.menu : appData.menu.filter(i => i.category === currentCategory);
             container.innerHTML = filtered.map(item => {
                 const isAvail = item.available !== false;
+                const itemCountInCart = currentCart.filter(c => c.id === item.id).reduce((sum, c) => sum + c.qty, 0);
+
                 return `
-                    <div class="bg-white p-3.5 rounded-2xl shadow-sm hover:shadow-md border border-slate-200/80 transition flex flex-col justify-between ${!isAvail ? 'opacity-50 grayscale' : ''}">
+                    <div class="bg-white p-3.5 rounded-2xl shadow-sm hover:shadow-md border ${itemCountInCart > 0 ? 'border-amber-500 ring-1 ring-amber-400' : 'border-slate-200/80'} transition flex flex-col justify-between ${!isAvail ? 'opacity-50 grayscale' : ''}">
                         <div>
                             <div class="flex justify-between items-center">
                                 <span class="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-bold">${escapeHtml(item.category)}</span>
@@ -1245,12 +1456,14 @@
                         </div>
                         <div class="mt-3 flex justify-between items-center pt-2 border-t border-slate-100">
                             <span class="font-black text-slate-900 font-mono text-xs">${item.price.toFixed(3)} <small class="font-normal text-[10px]">ر.ع</small></span>
-                            <div class="flex gap-1">
+                            <div class="flex items-center gap-1">
                                 ${isAvail ? `
                                     <button onclick="openCustomizer(${item.id}, 'pos')" class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center justify-center text-xs font-bold" title="تخصيص">
                                         <i class="fa-solid fa-sliders text-[10px]"></i>
                                     </button>
-                                    <button onclick="addDirectToCart(${item.id})" class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold" title="إضافة سريعة">+</button>
+                                    <button onclick="removeDirectFromCart(${item.id})" class="w-6 h-6 rounded-lg ${itemCountInCart > 0 ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-slate-100 text-slate-400'} flex items-center justify-center text-xs font-black transition" title="إنقاص">-</button>
+                                    ${itemCountInCart > 0 ? `<span class="text-xs font-mono font-black text-amber-700 px-0.5">${itemCountInCart}</span>` : ''}
+                                    <button onclick="addDirectToCart(${item.id})" class="w-6 h-6 rounded-lg bg-slate-900 hover:bg-slate-700 text-white flex items-center justify-center text-xs font-bold transition" title="إضافة">+</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -1262,15 +1475,36 @@
         function addDirectToCart(id) {
             const item = appData.menu.find(i => i.id === id);
             if (!item || item.available === false) return;
-            currentCart.push({
-                id: item.id,
-                cartItemId: Date.now() + Math.random(),
-                name: item.name,
-                customization: 'افتراضي',
-                price: item.price,
-                qty: 1
-            });
+            
+            const existing = currentCart.find(i => i.id === item.id && i.customization === 'افتراضي');
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                currentCart.push({
+                    id: item.id,
+                    cartItemId: Date.now() + Math.random(),
+                    name: item.name,
+                    customization: 'افتراضي',
+                    price: item.price,
+                    qty: 1
+                });
+            }
             renderCart();
+            renderMenuItems();
+        }
+
+        function removeDirectFromCart(id) {
+            for (let i = currentCart.length - 1; i >= 0; i--) {
+                if (currentCart[i].id === id) {
+                    currentCart[i].qty -= 1;
+                    if (currentCart[i].qty <= 0) {
+                        currentCart.splice(i, 1);
+                    }
+                    break;
+                }
+            }
+            renderCart();
+            renderMenuItems();
         }
 
         function changeCartQty(cartItemId, delta) {
@@ -1279,11 +1513,15 @@
             item.qty += delta;
             if (item.qty <= 0) currentCart = currentCart.filter(i => i.cartItemId !== cartItemId);
             renderCart();
+            renderMenuItems();
         }
 
         function clearCart() {
             currentCart = [];
+            const carInput = document.getElementById('order-car-num');
+            if (carInput) carInput.value = '';
             renderCart();
+            renderMenuItems();
         }
 
         function renderCart() {
@@ -1315,9 +1553,11 @@
             document.getElementById('cart-total').innerText = total.toFixed(3) + " ر.ع";
         }
 
+        // التبديل بين رقم الطاولة ورقم السيارة للطلبات الخارجية
         function toggleTableSelect() {
             const type = document.getElementById('order-type').value;
-            document.getElementById('table-select-wrapper').style.display = type === 'table' ? 'block' : 'none';
+            document.getElementById('table-select-wrapper').classList.toggle('hidden', type !== 'table');
+            document.getElementById('car-number-wrapper').classList.toggle('hidden', type !== 'takeaway');
         }
 
         function renderTableSelects() {
@@ -1364,23 +1604,31 @@
             }
         }
 
-        // ==================== الدفع بالترقيم اليومي المتسلسل ====================
+        // ==================== الدفع بالترقيم اليومي المتسلسل ورقم السيارة ====================
         let pendingCheckoutOrder = null;
 
         function openPaymentModal() {
             if (currentCart.length === 0) return alert("السلة فارغة!");
             const orderType = document.getElementById('order-type').value;
             const tableNum = document.getElementById('order-table').value;
+            const carNum = document.getElementById('order-car-num').value.trim();
             const total = currentCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
+            let orderTypeLabel = orderType === 'table' ? `طاولة ${tableNum}` : 'طلب سفري';
+            if (orderType === 'takeaway' && carNum) {
+                orderTypeLabel = `سفري - سيارة (${carNum})`;
+            }
+
             pendingCheckoutOrder = {
-                type: orderType === 'table' ? `طاولة ${tableNum}` : 'طلب سفري',
+                type: orderTypeLabel,
+                carNumber: orderType === 'takeaway' ? carNum : '',
                 tableNum: orderType === 'table' ? tableNum : null,
                 items: [...currentCart],
                 total: total
             };
 
             document.getElementById('pay-modal-amount').innerText = total.toFixed(3) + " ر.ع";
+            document.getElementById('pay-modal-subinfo').innerText = orderTypeLabel;
             document.getElementById('payment-modal').classList.remove('hidden');
         }
 
@@ -1398,6 +1646,7 @@
                 id: Date.now().toString().slice(-5),
                 dailyNumber: dailyNum,
                 type: pendingCheckoutOrder.type,
+                carNumber: pendingCheckoutOrder.carNumber || '',
                 items: [...pendingCheckoutOrder.items],
                 time: new Date().toLocaleString('ar-OM'),
                 paymentMethod: paymentMethod,
@@ -1421,7 +1670,7 @@
             showReceiptModal(completed);
         }
 
-        // ==================== خريطة الطاولات ====================
+        // ==================== خريطة الطاولات مع زر إلغاء الطلب ====================
         function renderTablesMap() {
             const grid = document.getElementById('tables-grid');
             const badge = document.getElementById('busy-tables-badge');
@@ -1446,7 +1695,10 @@
                             <div>
                                 <div class="flex justify-between items-start">
                                     <span class="font-black text-base text-red-700">طاولة رقم ${i}</span>
-                                    <span class="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">${escapeHtml(active.source || 'طلب')}</span>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">${escapeHtml(active.source || 'طلب')}</span>
+                                        <button onclick="cancelTableOrder(${i})" class="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 text-red-800 text-[10px] font-bold flex items-center justify-center" title="إلغاء وحذف الطلب">✕</button>
+                                    </div>
                                 </div>
                                 <div class="my-2 flex items-center justify-between">
                                     <span class="text-[10px] text-slate-500 font-mono">${active.time || ''}</span>
@@ -1493,6 +1745,16 @@
             grid.innerHTML = html;
         }
 
+        async function cancelTableOrder(tableNum) {
+            if (!confirm(`هل أنت متأكد من إلغاء وحذف طلب طاولة رقم (${tableNum}) نهائياً دون تسجيله في المبيعات؟`)) return;
+            delete appData.activeTableOrders[tableNum];
+            const dbUrl = getCleanDbUrl();
+            try {
+                await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, { method: 'DELETE' });
+            } catch (e) {}
+            saveData();
+        }
+
         async function updateTableStatus(tableNum, newStatus) {
             if (appData.activeTableOrders && appData.activeTableOrders[tableNum]) {
                 appData.activeTableOrders[tableNum].status = newStatus;
@@ -1524,6 +1786,7 @@
             toggleTableSelect();
             document.getElementById('order-table').value = num;
             renderCart();
+            renderMenuItems();
         }
 
         function payDirectFromTable(num) {
@@ -1533,12 +1796,14 @@
 
             pendingCheckoutOrder = {
                 type: `طاولة ${num}`,
+                carNumber: '',
                 tableNum: num,
                 items: [...order.items],
                 total: total
             };
 
             document.getElementById('pay-modal-amount').innerText = total.toFixed(3) + " ر.ع";
+            document.getElementById('pay-modal-subinfo').innerText = `طاولة ${num}`;
             document.getElementById('payment-modal').classList.remove('hidden');
         }
 
@@ -1563,7 +1828,7 @@
             qrContainer.innerHTML = qrHtml;
         }
 
-        // ==================== سجل المبيعات والتقارير ====================
+        // ==================== سجل المبيعات، الفاتورة الحرارية، وتحويل PDF ====================
         function renderOrdersHistory() {
             const totalSales = appData.completedOrders.reduce((s, o) => s + o.total, 0);
             const cashSales = appData.completedOrders.filter(o => o.paymentMethod?.includes('نقد')).reduce((s, o) => s + o.total, 0);
@@ -1590,8 +1855,8 @@
                     <td class="p-3 text-[11px] text-slate-400 font-mono">${o.time}</td>
                     <td class="p-3 font-black text-emerald-700 font-mono">${o.total.toFixed(3)} ر.ع</td>
                     <td class="p-3 text-center">
-                        <button onclick="reprintOrder(${idx})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition">
-                            <i class="fa-solid fa-print"></i>
+                        <button onclick="reprintOrder(${idx})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition" title="عرض للطباعة أو PDF">
+                            <i class="fa-solid fa-print"></i> / <i class="fa-solid fa-file-pdf text-red-600"></i>
                         </button>
                     </td>
                 </tr>
@@ -1611,6 +1876,14 @@
             document.getElementById('rec-payment').innerText = order.paymentMethod || 'نقد';
             document.getElementById('rec-time').innerText = order.time;
             
+            const carRow = document.getElementById('rec-car-row');
+            if (order.carNumber) {
+                document.getElementById('rec-car-num').innerText = order.carNumber;
+                carRow.classList.remove('hidden');
+            } else {
+                carRow.classList.add('hidden');
+            }
+
             const container = document.getElementById('rec-items');
             if (Array.isArray(order.items)) {
                 container.innerHTML = order.items.map(it => `
@@ -1630,6 +1903,19 @@
             document.getElementById('receipt-modal').classList.remove('hidden');
         }
 
+        function downloadReceiptPDF() {
+            const element = document.getElementById('receipt-modal-content');
+            const orderId = document.getElementById('rec-daily-id').innerText.replace('#', '');
+            const opt = {
+                margin:       4,
+                filename:     `فاتورة_${appData.cafeName}_طلب_${orderId}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: [80, 170], orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
         function closeReceiptModal() {
             document.getElementById('receipt-modal').classList.add('hidden');
         }
@@ -1646,7 +1932,7 @@
         function exportSalesToCSV() {
             if (appData.completedOrders.length === 0) return alert("لا توجد مبيعات مسجلة لتصديرها!");
 
-            let csv = "\uFEFFالرقم اليومي,رقم الفاتورة,نوع الطلب,طريقة الدفع,الأصناف,الوقت والتاريخ,المجموع (ر.ع)\n";
+            let csv = "\uFEFFالرقم اليومي,رقم الفاتورة,نوع الطلب / السيارة,طريقة الدفع,الأصناف,الوقت والتاريخ,المجموع (ر.ع)\n";
             appData.completedOrders.forEach(o => {
                 const itemsText = Array.isArray(o.items) ? o.items.map(i => `${i.name} (×${i.qty})`).join(' - ') : o.items;
                 csv += `"${o.dailyNumber || ''}","${o.id}","${o.type}","${o.paymentMethod || 'نقد'}","${itemsText}","${o.time}","${o.total.toFixed(3)}"\n`;
