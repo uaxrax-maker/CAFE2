@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>كافيه مسرى - POS & QR</title>
+    <title>مسرى كافيه - POS & QR</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,26 +31,27 @@
 </head>
 <body id="main-body" class="min-h-screen flex flex-col bg-slate-100 text-slate-800 transition-colors duration-300">
 
-    <!-- نافذة قفل الكاشير (PIN Lock) -->
-    <div id="pin-modal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+    <!-- ==================== نافذة قفل الكاشير (PIN Lock) ==================== -->
+    <div id="pin-modal" class="hidden fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center space-y-4">
             <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-inner">
                 <i class="fa-solid fa-lock"></i>
             </div>
             <div>
-                <h3 class="font-black text-lg text-slate-800">صلاحيات الكاشير</h3>
-                <p class="text-xs text-slate-500 mt-1">أدخل رمز PIN للدخول (الافتراضي: 1234)</p>
+                <h3 class="font-black text-lg text-slate-800">دخول الموظفين</h3>
+                <p class="text-xs text-slate-500 mt-1">أدخل رمز PIN للكاشير (الافتراضي: 1234)</p>
             </div>
-            <input type="password" id="pin-input" maxlength="6" placeholder="••••" class="w-full text-center text-2xl tracking-[0.5em] font-mono py-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-600 focus:outline-none">
+            <input type="password" id="pin-input" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter') verifyPin()" class="w-full text-center text-2xl tracking-[0.5em] font-mono py-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-600 focus:outline-none">
             <div class="grid grid-cols-2 gap-2">
                 <button onclick="verifyPin()" class="bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl font-bold text-xs transition">دخول</button>
-                <button onclick="cancelPinAuth()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-xs transition">واجهة الزبون</button>
+                <button onclick="cancelPinAuth()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-xs transition">شاشة الزبون</button>
             </div>
         </div>
     </div>
 
-    <!-- 1. واجهة الزبون عبر الباركود -->
+    <!-- ==================== 1. واجهة الزبون عبر الباركود ==================== -->
     <div id="customer-qr-app" class="hidden min-h-screen flex flex-col max-w-lg mx-auto w-full shadow-2xl relative transition-all duration-300">
+        
         <header id="cust-header-box" class="bg-amber-700 text-white p-4 text-center sticky top-0 z-20 shadow">
             <div id="cust-logo-wrapper" class="hidden mb-2 justify-center">
                 <img id="cust-header-img" src="" alt="شعار الكافيه" class="h-16 w-auto object-contain mx-auto rounded-lg">
@@ -63,6 +64,7 @@
             </div>
         </header>
 
+        <!-- كرت تتبع حالة الطلب المباشر للزبون -->
         <div id="cust-order-status-card" class="hidden m-4 p-4 rounded-2xl bg-white/90 backdrop-blur border border-amber-200 shadow-md">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2">
@@ -81,6 +83,7 @@
             <div id="cust-order-items-preview" class="mt-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-xl space-y-1"></div>
         </div>
 
+        <!-- قائمة المنيو للزبون -->
         <div class="p-4 flex-1 pb-36">
             <h2 class="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
                 <i class="fa-solid fa-mug-hot text-amber-600"></i> قائمة المشروبات والمأكولات
@@ -88,6 +91,7 @@
             <div id="cust-menu-list" class="space-y-3"></div>
         </div>
 
+        <!-- شريط الطلب السفلي للزبون -->
         <div class="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 safe-bottom z-30 shadow-[0_-4px_15px_rgba(0,0,0,0.06)]">
             <input type="text" id="cust-order-note" placeholder="ملاحظات إضافية على الطلب..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl mb-2 bg-slate-50 focus:bg-white focus:outline-amber-600 transition">
             <button onclick="sendRealCustomerOrder()" id="cust-submit-btn" class="w-full bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white py-3 px-4 rounded-xl font-bold flex justify-between items-center transition shadow-lg">
@@ -100,11 +104,12 @@
         </div>
     </div>
 
-    <!-- 2. واجهة الكاشير -->
-    <div id="cashier-system-app" class="flex-1 flex flex-col min-h-screen">
+    <!-- ==================== 2. واجهة الكاشير الأساسية ==================== -->
+    <div id="cashier-system-app" class="hidden flex-1 flex flex-col min-h-screen">
         <header id="cashier-header" class="bg-slate-900 text-white px-4 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-3 shadow-md sticky top-0 z-40">
             <div class="flex items-center gap-3">
                 <div id="cashier-logo-box" class="bg-amber-600 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow overflow-hidden">
+                    <img id="cashier-header-img" src="" class="hidden w-full h-full object-cover">
                     <i id="cashier-header-icon" class="fa-solid fa-mug-hot text-lg"></i>
                 </div>
                 <div>
@@ -114,7 +119,7 @@
                             <span class="w-2 h-2 rounded-full bg-slate-400" id="cloud-dot"></span> <span id="cloud-text">محلي</span>
                         </span>
                     </div>
-                    <p id="header-cafe-sub" class="text-[11px] text-slate-400">نظام إدارة نقاط البيع والطلب الذاتي</p>
+                    <p id="header-cafe-sub" class="text-[11px] text-slate-400">نظام إدارة نقاط البيع والطلب الذاتي السحابي</p>
                 </div>
             </div>
 
@@ -132,22 +137,23 @@
                     <i class="fa-solid fa-receipt"></i> المبيعات والتقارير
                 </button>
                 <button onclick="switchTab('settings')" id="tab-settings" class="tab-btn px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-bold text-slate-300 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
-                    <i class="fa-solid fa-gear"></i> الإعدادات
+                    <i class="fa-solid fa-gear"></i> الإعدادات والمظهر
                 </button>
-                <button onclick="lockCashier()" class="px-3 py-2 rounded-lg text-xs font-bold text-red-400 hover:bg-slate-700 transition" title="قفل الواجهة">
+                <button onclick="lockCashier()" class="px-3 py-2 rounded-lg text-xs font-bold text-red-400 hover:bg-slate-700 transition" title="قفل الكاشير">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </nav>
         </header>
 
         <main class="flex-1 flex flex-col overflow-hidden">
-            <!-- تبويب الكاشير -->
+            <!-- تبويب 1: الكاشير -->
             <section id="view-pos" class="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 <div class="flex-1 flex flex-col p-4 overflow-y-auto">
                     <div id="pos-categories" class="flex gap-2 pb-3 overflow-x-auto mb-2"></div>
                     <div id="pos-items" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3.5 pb-6"></div>
                 </div>
 
+                <!-- سلة الكاشير -->
                 <div class="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-col shadow-xl max-h-[50vh] lg:max-h-full">
                     <div class="p-3.5 bg-slate-50 border-b flex justify-between items-center">
                         <span class="font-extrabold text-sm text-slate-800 flex items-center gap-2">
@@ -191,13 +197,13 @@
                 </div>
             </section>
 
-            <!-- تبويب الطاولات -->
+            <!-- تبويب 2: إدارة الطاولات -->
             <section id="view-tables" class="h-full p-4 lg:p-6 overflow-y-auto hidden">
                 <div class="max-w-6xl mx-auto space-y-4">
                     <div class="flex flex-wrap justify-between items-center gap-2">
                         <div>
                             <h2 class="text-xl font-black text-slate-800">خريطة الطاولات والحالات المباشرة</h2>
-                            <p class="text-xs text-slate-500">تحديث لحظي لحالة الطاولات</p>
+                            <p class="text-xs text-slate-500">تحديث لحظي فور إرسال الزبون لطلبه من الباركود</p>
                         </div>
                         <div class="flex gap-3 text-xs font-bold">
                             <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> متاحة</span>
@@ -208,18 +214,18 @@
                 </div>
             </section>
 
-            <!-- تبويب الباركود -->
+            <!-- تبويب 3: رموز الباركود -->
             <section id="view-qr" class="h-full p-4 lg:p-6 overflow-y-auto hidden">
                 <div class="max-w-5xl mx-auto bg-white p-6 rounded-2xl shadow">
                     <h2 class="text-lg font-black text-slate-800 mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-qrcode text-amber-600"></i> بطاقات QR للطاولات
+                        <i class="fa-solid fa-qrcode text-amber-600"></i> بطاقات QR الذكية للطاولات
                     </h2>
-                    <p class="text-xs text-slate-500 mb-6">امسح الباركود لتجربة شاشة الزبون للطلب المباشر</p>
+                    <p class="text-xs text-slate-500 mb-6">امسح الباركود لتجربة شاشة الزبون وتخصيص المشروبات مباشرة</p>
                     <div id="qr-cards-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
                 </div>
             </section>
 
-            <!-- تبويب المبيعات -->
+            <!-- تبويب 4: سجل المبيعات والتقارير -->
             <section id="view-orders" class="h-full p-4 lg:p-6 overflow-y-auto hidden">
                 <div class="max-w-5xl mx-auto space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -236,7 +242,7 @@
                             <h3 id="stat-card-sales" class="text-xl font-black text-slate-800 font-mono mt-1">0.000 ر.ع</h3>
                         </div>
                         <div class="bg-white p-4 rounded-2xl shadow border-r-4 border-purple-500">
-                            <span class="text-xs text-slate-400 font-bold">عدد الفواتير</span>
+                            <span class="text-xs text-slate-400 font-bold">عدد الفواتير المنفذة</span>
                             <h3 id="stat-total-orders" class="text-xl font-black text-slate-800 font-mono mt-1">0</h3>
                         </div>
                     </div>
@@ -246,13 +252,13 @@
                             <i class="fa-solid fa-file-excel"></i> تصدير إكسل (CSV)
                         </button>
                         <button onclick="backupSystemData()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-cloud-arrow-down"></i> نسخة احتياطية
+                            <i class="fa-solid fa-cloud-arrow-down"></i> تحميل نسخة احتياطية
                         </button>
                     </div>
 
                     <div class="bg-white rounded-2xl shadow overflow-hidden">
                         <div class="p-4 border-b flex justify-between items-center">
-                            <h3 class="font-bold text-sm text-slate-800">سجل الفواتير</h3>
+                            <h3 class="font-bold text-sm text-slate-800">سجل الفواتير (ترقيم تسلسلي يومي)</h3>
                             <button onclick="clearSalesHistory()" class="text-xs text-red-500 hover:underline">تصفير السجل</button>
                         </div>
                         <div class="overflow-x-auto">
@@ -275,20 +281,68 @@
                 </div>
             </section>
 
-            <!-- تبويب الإعدادات -->
+            <!-- تبويب 5: الإعدادات، المظهر، والمنيو بالكامل -->
             <section id="view-settings" class="h-full p-4 lg:p-6 overflow-y-auto hidden">
                 <div class="max-w-4xl mx-auto space-y-6 pb-16">
+                    
+                    <!-- حماية الكاشير (PIN) -->
                     <div class="bg-white p-5 rounded-2xl shadow space-y-3">
                         <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-shield-halved text-amber-600"></i> حماية الكاشير
+                            <i class="fa-solid fa-shield-halved text-amber-600"></i> أمان وحماية الكاشير
                         </h3>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">رمز المرور (PIN)</label>
-                            <input type="password" id="setting-pin" class="w-full sm:w-64 p-2.5 text-xs border rounded-xl font-mono">
+                        <div class="flex flex-wrap items-end gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">رمز المرور للكاشير (PIN)</label>
+                                <input type="password" id="setting-pin" class="w-48 p-2.5 text-xs border rounded-xl font-mono">
+                            </div>
+                            <button onclick="savePinSetting()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-4 py-2.5 rounded-xl font-bold transition">
+                                حفظ الرمز السري
+                            </button>
                         </div>
-                        <button onclick="savePinSetting()" class="bg-slate-900 text-white text-xs px-4 py-2 rounded-xl font-bold transition">حفظ رمز PIN</button>
                     </div>
 
+                    <!-- تخصيص المظهر والخلفيات والصور العلوية -->
+                    <div class="bg-white p-5 rounded-2xl shadow space-y-4">
+                        <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-palette text-amber-600"></i> تخصيص المظهر والخلفيات والصور العلوية
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- مظهر شاشة الزبون -->
+                            <div class="p-3.5 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-amber-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-mobile-screen"></i> واجهة هاتف الزبون
+                                </span>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">لون خلفية صفحة الزبون</label>
+                                    <input type="color" id="theme-cust-bg" class="w-full h-8 rounded border p-1 bg-white cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">رابط صورة/شعار الترويسة في الأعلى</label>
+                                    <input type="url" id="theme-cust-img" placeholder="https://example.com/logo.png" class="w-full p-2 text-xs border rounded-lg bg-white">
+                                </div>
+                            </div>
+
+                            <!-- مظهر شاشة الكاشير -->
+                            <div class="p-3.5 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-desktop"></i> واجهة الكاشير الأساسية
+                                </span>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">لون خلفية شاشة الكاشير</label>
+                                    <input type="color" id="theme-cashier-bg" class="w-full h-8 rounded border p-1 bg-white cursor-pointer">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-1">رابط صورة اللوجو في الأعلى</label>
+                                    <input type="url" id="theme-cashier-img" placeholder="https://example.com/icon.png" class="w-full p-2 text-xs border rounded-lg bg-white">
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="saveThemeSettings()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition">
+                            حفظ وتطبيق المظهر سحابياً
+                        </button>
+                    </div>
+
+                    <!-- إعدادات الكافيه -->
                     <div class="bg-white p-5 rounded-2xl shadow">
                         <h3 class="font-black text-slate-800 mb-3 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-store text-amber-600"></i> بيانات وهوية الكافيه
@@ -308,15 +362,92 @@
                             </div>
                         </div>
                         <button onclick="saveCafeSettings()" class="mt-3 bg-slate-900 hover:bg-slate-800 text-white text-xs px-4 py-2 rounded-xl font-bold transition">
-                            حفظ الإعدادات
+                            حفظ وتحديث الإعدادات سحابياً
                         </button>
+                    </div>
+
+                    <!-- إدارة تخصيصات المشروبات (الأحجام، الحليب، السكر) -->
+                    <div class="bg-white p-5 rounded-2xl shadow space-y-4">
+                        <div>
+                            <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-amber-600"></i> إدارة خيارات تخصيص المشروبات (الأحجام، الحليب، السكر)
+                            </h3>
+                            <p class="text-[11px] text-slate-400 mt-0.5">يمكنك إضافة أو حذف أي خيار مع تحديد السعر الإضافي المحسوب تلقائياً في الفاتورة</p>
+                        </div>
+
+                        <div class="p-3.5 bg-slate-50 border rounded-xl space-y-3">
+                            <span class="font-bold text-xs text-slate-800">إضافة خيار تخصيص جديد</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                                <select id="new-mod-type" class="p-2 text-xs border rounded-lg bg-white font-bold">
+                                    <option value="sizes">حجم / جرعة (Size)</option>
+                                    <option value="milks">نوع حليب (Milk)</option>
+                                    <option value="sugars">درجة تحلية (Sugar)</option>
+                                </select>
+                                <input type="text" id="new-mod-name" placeholder="اسم الخيار (مثال: حليب لوز / دبل شوت)" class="p-2 text-xs border rounded-lg bg-white sm:col-span-2">
+                                <div class="flex gap-1">
+                                    <input type="number" id="new-mod-price" step="0.100" placeholder="السعر" class="w-20 p-2 text-xs border rounded-lg bg-white">
+                                    <button onclick="addNewModifierMerged()" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg px-3">+ إضافة</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="p-3 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-700 block">الأحجام المتوفرة</span>
+                                <div id="list-sizes" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                            <div class="p-3 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-700 block">خيارات الحليب</span>
+                                <div id="list-milks" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                            <div class="p-3 bg-slate-50 border rounded-xl space-y-2">
+                                <span class="font-bold text-xs text-slate-700 block">درجات السكر</span>
+                                <div id="list-sugars" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- إضافة / تعديل صنف في المنيو -->
+                    <div class="bg-white p-5 rounded-2xl shadow">
+                        <h3 id="form-item-title" class="font-black text-slate-800 mb-3 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle text-amber-600"></i> إضافة صنف جديد للقائمة
+                        </h3>
+                        <input type="hidden" id="edit-item-id" value="">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <input type="text" id="item-input-name" placeholder="اسم الصنف (مثال: فلات وايت)" class="p-2.5 text-xs border rounded-xl">
+                            <input type="number" id="item-input-price" step="0.100" placeholder="السعر (مثال: 1.500)" class="p-2.5 text-xs border rounded-xl">
+                            <input type="text" id="item-input-cat" placeholder="نوع الصنف" class="p-2.5 text-xs border rounded-xl" list="cat-suggestions">
+                            <datalist id="cat-suggestions">
+                                <option value="قهوة ساخنة">
+                                <option value="مشروبات باردة">
+                                <option value="قهوة مختصة (V60)">
+                                <option value="حلويات ومخبوزات">
+                            </datalist>
+                            <div class="flex gap-2">
+                                <button onclick="saveMenuItem()" id="btn-save-item" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl p-2.5 transition">
+                                    + إضافة
+                                </button>
+                                <button onclick="cancelItemEdit()" id="btn-cancel-edit" class="hidden bg-slate-200 text-slate-700 font-bold text-xs rounded-xl px-3 transition">
+                                    إلغاء
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- قائمة الأصناف وإدارة المخزون -->
+                    <div class="bg-white p-5 rounded-2xl shadow">
+                        <h3 class="font-black text-slate-800 mb-3 text-sm flex items-center justify-between">
+                            <span>إدارة الأصناف والمخزون الحالي</span>
+                            <span id="items-count-badge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-mono">0 أصناف</span>
+                        </h3>
+                        <div id="settings-menu-list" class="divide-y divide-slate-100 max-h-96 overflow-y-auto"></div>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- نافذة تخصيص المشروب -->
+    <!-- ==================== 3. نافذة تخصيص المشروب ==================== -->
     <div id="customizer-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl flex flex-col space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
@@ -326,41 +457,48 @@
                 </div>
                 <button onclick="closeCustomizerModal()" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
+
             <div class="space-y-3 text-xs">
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">الحجم / الجرعة</label>
                     <select id="mod-size" onchange="calculateCustomizerPrice()" class="w-full p-2 border rounded-xl bg-slate-50 font-bold"></select>
                 </div>
+
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">نوع الحليب</label>
                     <select id="mod-milk" onchange="calculateCustomizerPrice()" class="w-full p-2 border rounded-xl bg-slate-50 font-bold"></select>
                 </div>
+
                 <div>
                     <label class="block font-bold text-slate-700 mb-1">درجة التحلية (السكر)</label>
                     <select id="mod-sugar" class="w-full p-2 border rounded-xl bg-slate-50 font-bold"></select>
                 </div>
             </div>
+
             <div class="pt-2 border-t flex justify-between items-center">
                 <span class="text-xs text-slate-500 font-bold">السعر النهائي:</span>
                 <span id="customizer-final-price" class="font-black text-amber-600 font-mono text-base">0.000 ر.ع</span>
             </div>
+
             <button onclick="confirmCustomizedItem()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow">
                 تأكيد وإضافة للسلة
             </button>
         </div>
     </div>
 
-    <!-- نافذة الدفع -->
+    <!-- ==================== 4. نافذة اختيار طريقة الدفع ==================== -->
     <div id="payment-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-extrabold text-sm text-slate-800">إتمام الدفع</h3>
+                <h3 class="font-extrabold text-sm text-slate-800">إتمام الدفع وإغلاق الحساب</h3>
                 <button onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
+            
             <div class="text-center py-2">
                 <span class="text-xs text-slate-400">المبلغ المطلوب سداده</span>
                 <h2 id="pay-modal-amount" class="text-2xl font-black text-amber-600 font-mono mt-1">0.000 ر.ع</h2>
             </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="finalizePayment('نقد (كاش)')" class="p-3.5 border-2 border-amber-500 hover:bg-amber-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition group">
                     <i class="fa-solid fa-money-bill-wave text-2xl text-amber-600 group-hover:scale-110 transition"></i>
@@ -374,13 +512,14 @@
         </div>
     </div>
 
-    <!-- نافذة الفاتورة الحرارية -->
+    <!-- ==================== 5. نافذة الفاتورة الحرارية ==================== -->
     <div id="receipt-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center pb-2 border-b">
-                <span class="font-bold text-sm text-slate-800">معاينة الفاتورة</span>
+                <span class="font-bold text-sm text-slate-800">معاينة الفاتورة للطباعة</span>
                 <button onclick="closeReceiptModal()" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
+            
             <div id="receipt-modal-content" class="my-4 p-4 border border-dashed border-slate-300 rounded-xl bg-slate-50 font-mono text-center text-xs overflow-y-auto">
                 <h2 id="rec-cafe-name" class="text-base font-extrabold text-slate-900">مسرى كافيه</h2>
                 <p id="rec-cafe-sub" class="text-[10px] text-slate-500 mt-0.5"></p>
@@ -394,25 +533,30 @@
                     <span>الدفع: <b id="rec-payment" class="text-slate-800">نقد</b></span>
                 </div>
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
+                
                 <div id="rec-items" class="space-y-1.5 text-right text-xs"></div>
+                
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
                 <div class="flex justify-between items-center text-sm font-black text-slate-900">
-                    <span>الإجمالي:</span>
+                    <span>الإجمالي الكلي:</span>
                     <span id="rec-total">0.000 ر.ع</span>
                 </div>
                 <div class="border-b border-dashed border-slate-300 my-2"></div>
-                <p class="text-[10px] text-slate-400 mt-2">شكراً لزيارتكم! ☕</p>
+                <p class="text-[10px] text-slate-400 mt-2">شكراً لزيارتكم! نتشرف بحضوركم دائماً ☕</p>
             </div>
+
             <div class="grid grid-cols-2 gap-2 pt-2">
                 <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow">
                     <i class="fa-solid fa-print"></i> طباعة
                 </button>
-                <button onclick="closeReceiptModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">إغلاق</button>
+                <button onclick="closeReceiptModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
+                    إغلاق
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- كود الجافاسكربت -->
+    <!-- ==================== كود الجافاسكربت الكامل ==================== -->
     <script>
         const FIREBASE_DEFAULT_URL = "https://cafe-c0fd0-default-rtdb.firebaseio.com";
         const DEFAULT_PIN = "1234";
@@ -423,8 +567,16 @@
             cafeName: "مسرى كافيه",
             cafeSub: "نظام الطلب الذاتي ونقاط البيع",
             tablesCount: 10,
-            theme: { custBg: "#f8fafc", cashierBg: "#f1f5f9" },
-            dailySequence: { lastDate: new Date().toISOString().slice(0, 10), currentCount: 0 },
+            theme: {
+                custBg: "#f8fafc",
+                custImg: "",
+                cashierBg: "#f1f5f9",
+                cashierImg: ""
+            },
+            dailySequence: {
+                lastDate: new Date().toISOString().slice(0, 10),
+                currentCount: 0
+            },
             categories: ["الكل", "قهوة ساخنة", "مشروبات باردة", "قهوة مختصة (V60)", "حلويات ومخبوزات"],
             modifiers: {
                 sizes: [
@@ -433,11 +585,18 @@
                     { name: "كبير (Large)", price: 0.500 }
                 ],
                 milks: [
-                    { name: "كامل الدسم", price: 0.000 },
+                    { name: "حليب كامل الدسم", price: 0.000 },
+                    { name: "حليب قليل الدسم", price: 0.000 },
                     { name: "حليب شوفان", price: 0.200 },
-                    { name: "حليب لوز", price: 0.200 }
+                    { name: "حليب لوز", price: 0.200 },
+                    { name: "بدون حليب", price: 0.000 }
                 ],
-                sugars: ["بدون سكر (0%)", "سكر خفيف (50%)", "سكر عادي (100%)"]
+                sugars: [
+                    "بدون سكر (0%)",
+                    "سكر خفيف (50%)",
+                    "سكر عادي (100%)",
+                    "سكر زيادة"
+                ]
             },
             menu: [
                 { id: 1, name: "إسبريسو دبل", price: 1.200, category: "قهوة ساخنة", available: true },
@@ -453,10 +612,15 @@
         };
 
         let appData = JSON.parse(localStorage.getItem('cloud_cafe_pos_data')) || defaultData;
-        if (!appData.pinCode) appData.pinCode = DEFAULT_PIN;
         if (!appData.firebaseUrl) appData.firebaseUrl = FIREBASE_DEFAULT_URL;
-        if (!appData.modifiers) appData.modifiers = defaultData.modifiers;
+        if (!appData.pinCode) appData.pinCode = DEFAULT_PIN;
+        if (!appData.theme) appData.theme = defaultData.theme;
         if (!appData.dailySequence) appData.dailySequence = defaultData.dailySequence;
+        if (!appData.modifiers) appData.modifiers = defaultData.modifiers;
+
+        appData.menu.forEach(item => {
+            if (item.available === undefined) item.available = true;
+        });
 
         let currentCategory = "الكل";
         let currentCart = [];
@@ -468,23 +632,30 @@
         const urlParams = new URLSearchParams(window.location.search);
         const customerTableParam = urlParams.get('table');
 
+        // حماية من ثغرات XSS
         function escapeHtml(text) {
             if (!text) return '';
-            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
         function getCleanDbUrl() {
             return (appData.firebaseUrl || FIREBASE_DEFAULT_URL).trim().replace(/\/$/, "");
         }
 
-        // ==================== حماية الكاشير ====================
+        // ==================== بوابة قفل الكاشير (PIN) ====================
         function checkCashierAuth() {
             const isAuth = sessionStorage.getItem('cashier_authenticated') === 'true';
             if (!isAuth) {
                 document.getElementById('pin-modal').classList.remove('hidden');
+                document.getElementById('pin-input').value = '';
                 document.getElementById('pin-input').focus();
             } else {
-                startCashierMode();
+                startCashierApp();
             }
         }
 
@@ -493,7 +664,7 @@
             if (input === appData.pinCode) {
                 sessionStorage.setItem('cashier_authenticated', 'true');
                 document.getElementById('pin-modal').classList.add('hidden');
-                startCashierMode();
+                startCashierApp();
             } else {
                 alert("رمز المرور غير صحيح!");
                 document.getElementById('pin-input').value = '';
@@ -511,23 +682,27 @@
 
         function savePinSetting() {
             const newPin = document.getElementById('setting-pin').value.trim();
-            if (newPin.length < 4) return alert("الرمز يجب أن يتكون من 4 أرقام!");
+            if (newPin.length < 4) return alert("يرجى إدخال رمز مكون من 4 خانات على الأقل!");
             appData.pinCode = newPin;
             saveData();
-            alert("تم حفظ رمز PIN الجديد بنجاح!");
+            alert("تم تحديث رمز PIN للكاشير بنجاح!");
         }
 
-        function startCashierMode() {
+        async function startCashierApp() {
             document.getElementById('cashier-system-app').classList.remove('hidden');
             updateUI();
-            listenFromCloud();
+            await listenFromCloud();
             setInterval(listenFromCloud, 3500);
         }
 
+        // ==================== الرقم التسلسلي والصوت ====================
         function getNextDailyOrderNumber() {
             const today = new Date().toISOString().slice(0, 10);
             if (!appData.dailySequence || appData.dailySequence.lastDate !== today) {
-                appData.dailySequence = { lastDate: today, currentCount: 1 };
+                appData.dailySequence = {
+                    lastDate: today,
+                    currentCount: 1
+                };
             } else {
                 appData.dailySequence.currentCount = (appData.dailySequence.currentCount || 0) + 1;
             }
@@ -549,12 +724,210 @@
             } catch (e) {}
         }
 
-        // ==================== وضع الزبون ====================
+        // ==================== تطبيق المظهر والخلفيات ====================
+        function applyThemes() {
+            const theme = appData.theme || defaultData.theme;
+            
+            if (customerTableParam) {
+                const custApp = document.getElementById('customer-qr-app');
+                if (custApp) custApp.style.backgroundColor = theme.custBg || "#f8fafc";
+                
+                const logoWrap = document.getElementById('cust-logo-wrapper');
+                const logoImg = document.getElementById('cust-header-img');
+                if (theme.custImg && theme.custImg.trim() !== "") {
+                    logoImg.src = theme.custImg;
+                    logoWrap.classList.remove('hidden');
+                    logoWrap.classList.add('flex');
+                } else {
+                    logoWrap.classList.add('hidden');
+                    logoWrap.classList.remove('flex');
+                }
+            } else {
+                const mainBody = document.getElementById('main-body');
+                if (mainBody) mainBody.style.backgroundColor = theme.cashierBg || "#f1f5f9";
+                
+                const cashierImg = document.getElementById('cashier-header-img');
+                const cashierIcon = document.getElementById('cashier-header-icon');
+                if (theme.cashierImg && theme.cashierImg.trim() !== "") {
+                    cashierImg.src = theme.cashierImg;
+                    cashierImg.classList.remove('hidden');
+                    cashierIcon.classList.add('hidden');
+                } else {
+                    cashierImg.classList.add('hidden');
+                    cashierIcon.classList.remove('hidden');
+                }
+            }
+        }
+
+        function saveThemeSettings() {
+            if (!appData.theme) appData.theme = {};
+            appData.theme.custBg = document.getElementById('theme-cust-bg').value;
+            appData.theme.custImg = document.getElementById('theme-cust-img').value.trim();
+            appData.theme.cashierBg = document.getElementById('theme-cashier-bg').value;
+            appData.theme.cashierImg = document.getElementById('theme-cashier-img').value.trim();
+            
+            saveData();
+            applyThemes();
+            alert("تم حفظ المظهر وتطبيقه سحابياً بنجاح!");
+        }
+
+        // ==================== إدارة التخصيص المدمجة ====================
+        function renderModifiersManager() {
+            const sizesContainer = document.getElementById('list-sizes');
+            sizesContainer.innerHTML = appData.modifiers.sizes.map((s, idx) => `
+                <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
+                    <span>${escapeHtml(s.name)} (+${s.price.toFixed(3)})</span>
+                    <button onclick="deleteModifierOption('sizes', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
+                </span>
+            `).join('');
+
+            const milksContainer = document.getElementById('list-milks');
+            milksContainer.innerHTML = appData.modifiers.milks.map((m, idx) => `
+                <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
+                    <span>${escapeHtml(m.name)} (+${m.price.toFixed(3)})</span>
+                    <button onclick="deleteModifierOption('milks', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
+                </span>
+            `).join('');
+
+            const sugarsContainer = document.getElementById('list-sugars');
+            sugarsContainer.innerHTML = appData.modifiers.sugars.map((s, idx) => `
+                <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
+                    <span>${escapeHtml(s)}</span>
+                    <button onclick="deleteModifierOption('sugars', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
+                </span>
+            `).join('');
+        }
+
+        function addNewModifierMerged() {
+            const type = document.getElementById('new-mod-type').value;
+            const name = document.getElementById('new-mod-name').value.trim();
+            const price = parseFloat(document.getElementById('new-mod-price').value) || 0.000;
+
+            if (!name) return alert("يرجى إدخال اسم الخيار!");
+
+            if (type === 'sugars') {
+                appData.modifiers.sugars.push(name);
+            } else {
+                appData.modifiers[type].push({ name, price });
+            }
+
+            document.getElementById('new-mod-name').value = '';
+            document.getElementById('new-mod-price').value = '';
+            saveData();
+            renderModifiersManager();
+        }
+
+        function deleteModifierOption(type, index) {
+            if (appData.modifiers[type].length <= 1) return alert("يجب إبقاء خيار واحد على الأقل!");
+            appData.modifiers[type].splice(index, 1);
+            saveData();
+            renderModifiersManager();
+        }
+
+        // ==================== نافذة التخصيص للمشروب ====================
+        function populateCustomizerSelects() {
+            const sizeSelect = document.getElementById('mod-size');
+            sizeSelect.innerHTML = appData.modifiers.sizes.map(s => `
+                <option value="${escapeHtml(s.name)}|${s.price}">${escapeHtml(s.name)} (+${s.price.toFixed(3)} ر.ع)</option>
+            `).join('');
+
+            const milkSelect = document.getElementById('mod-milk');
+            milkSelect.innerHTML = appData.modifiers.milks.map(m => `
+                <option value="${escapeHtml(m.name)}|${m.price}">${escapeHtml(m.name)} (+${m.price.toFixed(3)} ر.ع)</option>
+            `).join('');
+
+            const sugarSelect = document.getElementById('mod-sugar');
+            sugarSelect.innerHTML = appData.modifiers.sugars.map(s => `
+                <option value="${escapeHtml(s)}">${escapeHtml(s)}</option>
+            `).join('');
+        }
+
+        function openCustomizer(itemId, source) {
+            const item = appData.menu.find(i => i.id === itemId);
+            if (!item || item.available === false) return;
+
+            selectedItemForCustomization = item;
+            customizerSource = source;
+
+            document.getElementById('customizer-item-name').innerText = item.name;
+            document.getElementById('customizer-item-base-price').innerText = item.price.toFixed(3) + " ر.ع";
+            
+            populateCustomizerSelects();
+            calculateCustomizerPrice();
+            document.getElementById('customizer-modal').classList.remove('hidden');
+        }
+
+        function closeCustomizerModal() {
+            document.getElementById('customizer-modal').classList.add('hidden');
+            selectedItemForCustomization = null;
+        }
+
+        function calculateCustomizerPrice() {
+            if (!selectedItemForCustomization) return;
+            const sizeAdd = parseFloat(document.getElementById('mod-size').value.split('|')[1]) || 0;
+            const milkAdd = parseFloat(document.getElementById('mod-milk').value.split('|')[1]) || 0;
+            const finalPrice = selectedItemForCustomization.price + sizeAdd + milkAdd;
+            document.getElementById('customizer-final-price').innerText = finalPrice.toFixed(3) + " ر.ع";
+        }
+
+        function confirmCustomizedItem() {
+            if (!selectedItemForCustomization) return;
+
+            const sizeVal = document.getElementById('mod-size').value.split('|');
+            const sizeText = sizeVal[0];
+            const sizeAdd = parseFloat(sizeVal[1]) || 0;
+
+            const milkVal = document.getElementById('mod-milk').value.split('|');
+            const milkText = milkVal[0];
+            const milkAdd = parseFloat(milkVal[1]) || 0;
+
+            const sugarText = document.getElementById('mod-sugar').value;
+
+            const finalPrice = selectedItemForCustomization.price + sizeAdd + milkAdd;
+            const desc = `${sizeText}، ${milkText}، ${sugarText}`;
+
+            const customizedCartItem = {
+                id: selectedItemForCustomization.id,
+                cartItemId: Date.now() + Math.random(),
+                name: selectedItemForCustomization.name,
+                customization: desc,
+                price: finalPrice,
+                qty: 1
+            };
+
+            if (customizerSource === 'customer') {
+                customerCart.push(customizedCartItem);
+                renderCustomerMenu();
+            } else {
+                currentCart.push(customizedCartItem);
+                renderCart();
+            }
+
+            closeCustomizerModal();
+        }
+
+        function addQuickCustomerCart(id) {
+            const item = appData.menu.find(i => i.id === id);
+            if (!item || item.available === false) return;
+
+            customerCart.push({
+                id: item.id,
+                cartItemId: Date.now() + Math.random(),
+                name: item.name,
+                customization: 'افتراضي',
+                price: item.price,
+                qty: 1
+            });
+            renderCustomerMenu();
+        }
+
+        // ==================== وضع الزبون (QR Mode) ====================
         async function initCustomerMode() {
             document.getElementById('cashier-system-app').classList.add('hidden');
             document.getElementById('customer-qr-app').classList.remove('hidden');
             document.getElementById('cust-table-num').innerText = customerTableParam;
 
+            applyThemes();
             await loadCustomerDataAndLiveStatus();
             setInterval(loadCustomerDataAndLiveStatus, 4000);
         }
@@ -564,19 +937,22 @@
             if (!dbUrl) return;
 
             try {
-                const [menuRes, orderRes] = await Promise.all([
-                    fetch(`${dbUrl}/cafeState/menu.json`),
-                    fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`)
-                ]);
-
-                if (menuRes.ok) {
-                    const cloudMenu = await menuRes.json();
-                    if (Array.isArray(cloudMenu) && cloudMenu.length > 0) appData.menu = cloudMenu;
-                }
-
-                if (orderRes.ok) {
-                    const activeOrder = await orderRes.json();
-                    updateCustomerStatusUI(activeOrder);
+                const res = await fetch(`${dbUrl}/cafeState.json`);
+                if (res.ok) {
+                    const cloudState = await res.json();
+                    if (cloudState) {
+                        appData.cafeName = cloudState.cafeName || appData.cafeName;
+                        appData.cafeSub = cloudState.cafeSub || appData.cafeSub;
+                        if (cloudState.menu && cloudState.menu.length > 0) appData.menu = cloudState.menu;
+                        if (cloudState.modifiers) appData.modifiers = cloudState.modifiers;
+                        if (cloudState.theme) {
+                            appData.theme = cloudState.theme;
+                            applyThemes();
+                        }
+                        
+                        const activeOrders = cloudState.activeTableOrders || {};
+                        updateCustomerStatusUI(activeOrders[customerTableParam]);
+                    }
                 }
             } catch (e) {}
 
@@ -596,8 +972,8 @@
             card.classList.remove('hidden');
             const status = order.status || 'تم الاستلام';
             const badge = document.getElementById('cust-status-badge');
+            
             badge.innerText = status;
-
             if (status === 'تم الاستلام') {
                 badge.className = "text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-700";
             } else if (status === 'قيد التحضير') {
@@ -631,7 +1007,7 @@
                         <div>
                             <div class="flex items-center gap-1.5">
                                 <span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-bold">${escapeHtml(item.category)}</span>
-                                ${!isAvail ? `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold">غير متوفر</span>` : ''}
+                                ${!isAvail ? `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold">نفد المخزون</span>` : ''}
                             </div>
                             <h4 class="font-bold text-sm text-slate-800 mt-1">${escapeHtml(item.name)}</h4>
                             <span class="text-xs text-amber-600 font-extrabold font-mono">${item.price.toFixed(3)} ر.ع</span>
@@ -639,7 +1015,7 @@
                         <div>
                             ${isAvail ? `
                                 <div class="flex items-center gap-1.5">
-                                    <button onclick="openCustomizer(${item.id}, 'customer')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200">
+                                    <button onclick="openCustomizer(${item.id}, 'customer')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-200">
                                         <i class="fa-solid fa-sliders text-[11px] text-amber-600"></i>
                                         <span>تخصيص</span>
                                     </button>
@@ -647,7 +1023,9 @@
                                         + إضافة ${countInCart > 0 ? `(${countInCart})` : ''}
                                     </button>
                                 </div>
-                            ` : `<span class="text-xs text-slate-400 font-bold">غير متاح</span>`}
+                            ` : `
+                                <span class="text-xs text-slate-400 font-bold">غير متاح</span>
+                            `}
                         </div>
                     </div>
                 `;
@@ -682,7 +1060,7 @@
                     body: JSON.stringify(orderPayload)
                 });
 
-                if (!res.ok) throw new Error("السيرفر رفض الطلب");
+                if (!res.ok) throw new Error("السيرفر رفض الطلب (HTTP " + res.status + ")");
 
                 customerCart = [];
                 document.getElementById('cust-order-note').value = '';
@@ -705,9 +1083,16 @@
             document.getElementById('setting-cafe-sub').value = appData.cafeSub;
             document.getElementById('setting-tables-count').value = appData.tablesCount;
             document.getElementById('setting-pin').value = appData.pinCode;
+            
+            const theme = appData.theme || defaultData.theme;
+            document.getElementById('theme-cust-bg').value = theme.custBg || "#f8fafc";
+            document.getElementById('theme-cust-img').value = theme.custImg || "";
+            document.getElementById('theme-cashier-bg').value = theme.cashierBg || "#f1f5f9";
+            document.getElementById('theme-cashier-img').value = theme.cashierImg || "";
 
             document.title = `${appData.cafeName} - الكاشير`;
 
+            applyThemes();
             rebuildCategories();
             renderCategories();
             renderMenuItems();
@@ -716,6 +1101,8 @@
             renderTablesMap();
             renderQRSection();
             renderOrdersHistory();
+            renderSettingsMenu();
+            renderModifiersManager();
         }
 
         function rebuildCategories() {
@@ -726,15 +1113,26 @@
             appData.categories = Array.from(dynamicCats);
         }
 
+        // استخدام PATCH بدلاً من PUT لمنع مسح طلبات الزبائن النشطة بالخطأ
         async function syncToCloud() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
             try {
-                await Promise.all([
-                    fetch(`${dbUrl}/cafeState/menu.json`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(appData.menu) }),
-                    fetch(`${dbUrl}/cafeState/cafeName.json`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(appData.cafeName) })
-                ]);
-                updateCloudBadge(true);
+                const res = await fetch(`${dbUrl}/cafeState.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cafeName: appData.cafeName,
+                        cafeSub: appData.cafeSub,
+                        tablesCount: appData.tablesCount,
+                        theme: appData.theme,
+                        dailySequence: appData.dailySequence,
+                        menu: appData.menu,
+                        modifiers: appData.modifiers,
+                        completedOrders: appData.completedOrders || []
+                    })
+                });
+                updateCloudBadge(res.ok);
             } catch (e) {
                 updateCloudBadge(false);
             }
@@ -744,20 +1142,40 @@
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
             try {
-                const res = await fetch(`${dbUrl}/cafeState/activeTableOrders.json`);
+                const res = await fetch(`${dbUrl}/cafeState.json`);
                 if (!res.ok) throw new Error("Offline");
-                const cloudOrders = (await res.json()) || {};
-                
-                const newBusyCount = Object.keys(cloudOrders).length;
-                if (newBusyCount > lastKnownBusyCount) {
-                    playNotificationSound();
-                }
-                lastKnownBusyCount = newBusyCount;
-                appData.activeTableOrders = cloudOrders;
+                const cloudState = await res.json();
+                if (cloudState) {
+                    if (cloudState.menu) appData.menu = cloudState.menu;
+                    if (cloudState.modifiers) appData.modifiers = cloudState.modifiers;
+                    if (cloudState.theme) {
+                        appData.theme = cloudState.theme;
+                        applyThemes();
+                    }
+                    if (cloudState.dailySequence) appData.dailySequence = cloudState.dailySequence;
+                    if (cloudState.cafeName) appData.cafeName = cloudState.cafeName;
+                    if (cloudState.cafeSub) appData.cafeSub = cloudState.cafeSub;
+                    if (cloudState.tablesCount) appData.tablesCount = cloudState.tablesCount;
+                    if (cloudState.completedOrders) appData.completedOrders = cloudState.completedOrders;
 
-                localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
-                renderTablesMap();
-                renderTableSelects();
+                    const cloudOrders = cloudState.activeTableOrders || {};
+                    const newBusyCount = Object.keys(cloudOrders).length;
+                    if (newBusyCount > lastKnownBusyCount) {
+                        playNotificationSound();
+                    }
+                    lastKnownBusyCount = newBusyCount;
+                    appData.activeTableOrders = cloudOrders;
+
+                    localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
+                    
+                    renderTablesMap();
+                    renderTableSelects();
+                    renderOrdersHistory();
+                    rebuildCategories();
+                    renderCategories();
+                    renderMenuItems();
+                    renderModifiersManager();
+                }
                 updateCloudBadge(true);
             } catch (e) {
                 updateCloudBadge(false);
@@ -770,7 +1188,7 @@
             if (!dot || !txt) return;
             if (isOnline) {
                 dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
-                txt.innerText = "متصل سحابياً";
+                txt.innerText = "متصل سحابياً ومزامن";
             } else {
                 dot.className = "w-2 h-2 rounded-full bg-slate-400";
                 txt.innerText = "وضع محلي";
@@ -779,6 +1197,7 @@
 
         function saveData() {
             localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
+            lastKnownBusyCount = Object.keys(appData.activeTableOrders || {}).length;
             syncToCloud();
             updateUI();
         }
@@ -828,10 +1247,10 @@
                             <span class="font-black text-slate-900 font-mono text-xs">${item.price.toFixed(3)} <small class="font-normal text-[10px]">ر.ع</small></span>
                             <div class="flex gap-1">
                                 ${isAvail ? `
-                                    <button onclick="openCustomizer(${item.id}, 'pos')" class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center justify-center text-xs font-bold">
+                                    <button onclick="openCustomizer(${item.id}, 'pos')" class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center justify-center text-xs font-bold" title="تخصيص">
                                         <i class="fa-solid fa-sliders text-[10px]"></i>
                                     </button>
-                                    <button onclick="addDirectToCart(${item.id})" class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold">+</button>
+                                    <button onclick="addDirectToCart(${item.id})" class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold" title="إضافة سريعة">+</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -917,30 +1336,35 @@
             const orderType = document.getElementById('order-type').value;
             const tableNum = document.getElementById('order-table').value;
 
+            if (!appData.activeTableOrders) appData.activeTableOrders = {};
+
             if (status === 'hold') {
                 if (orderType !== 'table') return alert("تعليق الطلب متاح للطاولات فقط.");
-                const orderData = {
+                const orderPayload = {
                     table: tableNum,
                     items: [...currentCart],
                     time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
                     status: 'تم الاستلام',
                     source: 'كاشير'
                 };
+                appData.activeTableOrders[tableNum] = orderPayload;
                 
                 const dbUrl = getCleanDbUrl();
-                await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(orderData)
-                });
+                try {
+                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderPayload)
+                    });
+                } catch(e) {}
 
-                appData.activeTableOrders[tableNum] = orderData;
                 clearCart();
                 saveData();
                 alert(`تم تعليق الطلب لطاولة (${tableNum}) ومزامنته`);
             }
         }
 
+        // ==================== الدفع بالترقيم اليومي المتسلسل ====================
         let pendingCheckoutOrder = null;
 
         function openPaymentModal() {
@@ -969,6 +1393,7 @@
             if (!pendingCheckoutOrder) return;
 
             const dailyNum = getNextDailyOrderNumber();
+
             const completed = {
                 id: Date.now().toString().slice(-5),
                 dailyNumber: dailyNum,
@@ -981,10 +1406,13 @@
 
             appData.completedOrders.unshift(completed);
 
-            if (pendingCheckoutOrder.tableNum) {
+            if (pendingCheckoutOrder.tableNum && appData.activeTableOrders[pendingCheckoutOrder.tableNum]) {
+                const tNum = pendingCheckoutOrder.tableNum;
+                delete appData.activeTableOrders[tNum];
                 const dbUrl = getCleanDbUrl();
-                await fetch(`${dbUrl}/cafeState/activeTableOrders/${pendingCheckoutOrder.tableNum}.json`, { method: 'DELETE' });
-                delete appData.activeTableOrders[pendingCheckoutOrder.tableNum];
+                try {
+                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tNum}.json`, { method: 'DELETE' });
+                } catch(e) {}
             }
 
             clearCart();
@@ -993,6 +1421,7 @@
             showReceiptModal(completed);
         }
 
+        // ==================== خريطة الطاولات ====================
         function renderTablesMap() {
             const grid = document.getElementById('tables-grid');
             const badge = document.getElementById('busy-tables-badge');
@@ -1065,14 +1494,17 @@
         }
 
         async function updateTableStatus(tableNum, newStatus) {
-            const dbUrl = getCleanDbUrl();
-            await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}/status.json`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(newStatus)
-            });
-            if (appData.activeTableOrders[tableNum]) {
+            if (appData.activeTableOrders && appData.activeTableOrders[tableNum]) {
                 appData.activeTableOrders[tableNum].status = newStatus;
+                const dbUrl = getCleanDbUrl();
+                try {
+                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}/status.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newStatus)
+                    });
+                } catch(e) {}
+                saveData();
             }
         }
 
@@ -1110,6 +1542,7 @@
             document.getElementById('payment-modal').classList.remove('hidden');
         }
 
+        // ==================== بطاقات الباركود ====================
         function renderQRSection() {
             const qrContainer = document.getElementById('qr-cards-container');
             const baseUrl = window.location.href.split('?')[0];
@@ -1130,6 +1563,7 @@
             qrContainer.innerHTML = qrHtml;
         }
 
+        // ==================== سجل المبيعات والتقارير ====================
         function renderOrdersHistory() {
             const totalSales = appData.completedOrders.reduce((s, o) => s + o.total, 0);
             const cashSales = appData.completedOrders.filter(o => o.paymentMethod?.includes('نقد')).reduce((s, o) => s + o.total, 0);
@@ -1151,7 +1585,7 @@
                         </span>
                     </td>
                     <td class="p-3 text-slate-600 max-w-xs">
-                        ${Array.isArray(o.items) ? o.items.map(i => `${escapeHtml(i.name)} ×${i.qty}`).join('، ') : escapeHtml(o.items)}
+                        ${Array.isArray(o.items) ? o.items.map(i => `${escapeHtml(i.name)}${i.customization ? ` (${escapeHtml(i.customization)})` : ''} ×${i.qty}`).join('، ') : escapeHtml(o.items)}
                     </td>
                     <td class="p-3 text-[11px] text-slate-400 font-mono">${o.time}</td>
                     <td class="p-3 font-black text-emerald-700 font-mono">${o.total.toFixed(3)} ر.ع</td>
@@ -1185,8 +1619,11 @@
                             <span>${escapeHtml(it.name)} × ${it.qty}</span>
                             <span class="font-mono">${(it.price * it.qty).toFixed(3)}</span>
                         </div>
+                        ${it.customization ? `<div class="text-[9px] text-slate-400">${escapeHtml(it.customization)}</div>` : ''}
                     </div>
                 `).join('');
+            } else {
+                container.innerHTML = `<div>${escapeHtml(order.items)}</div>`;
             }
 
             document.getElementById('rec-total').innerText = order.total.toFixed(3) + " ر.ع";
@@ -1198,20 +1635,23 @@
         }
 
         function clearSalesHistory() {
-            if (confirm("هل أنت متأكد من تصفير سجل المبيعات بالكامل؟")) {
+            if (confirm("هل أنت متأكد من تصفير سجل المبيعات بالكامل سحابياً؟")) {
                 appData.completedOrders = [];
                 if (appData.dailySequence) appData.dailySequence.currentCount = 0;
                 saveData();
             }
         }
 
+        // ==================== تصدير التقارير والنسخ الاحتياطي ====================
         function exportSalesToCSV() {
             if (appData.completedOrders.length === 0) return alert("لا توجد مبيعات مسجلة لتصديرها!");
+
             let csv = "\uFEFFالرقم اليومي,رقم الفاتورة,نوع الطلب,طريقة الدفع,الأصناف,الوقت والتاريخ,المجموع (ر.ع)\n";
             appData.completedOrders.forEach(o => {
                 const itemsText = Array.isArray(o.items) ? o.items.map(i => `${i.name} (×${i.qty})`).join(' - ') : o.items;
                 csv += `"${o.dailyNumber || ''}","${o.id}","${o.type}","${o.paymentMethod || 'نقد'}","${itemsText}","${o.time}","${o.total.toFixed(3)}"\n`;
             });
+
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -1225,95 +1665,104 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `نسخة_احتياطية_${Date.now()}.json`);
+            downloadAnchor.setAttribute("download", `نسخة_احتياطية_${appData.cafeName}_${Date.now()}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
         }
 
-        function populateCustomizerSelects() {
-            const sizeSelect = document.getElementById('mod-size');
-            sizeSelect.innerHTML = appData.modifiers.sizes.map(s => `
-                <option value="${s.name}|${s.price}">${escapeHtml(s.name)} (+${s.price.toFixed(3)} ر.ع)</option>
-            `).join('');
-
-            const milkSelect = document.getElementById('mod-milk');
-            milkSelect.innerHTML = appData.modifiers.milks.map(m => `
-                <option value="${m.name}|${m.price}">${escapeHtml(m.name)} (+${m.price.toFixed(3)} ر.ع)</option>
-            `).join('');
-
-            const sugarSelect = document.getElementById('mod-sugar');
-            sugarSelect.innerHTML = appData.modifiers.sugars.map(s => `
-                <option value="${s}">${escapeHtml(s)}</option>
-            `).join('');
-        }
-
-        function openCustomizer(itemId, source) {
-            const item = appData.menu.find(i => i.id === itemId);
-            if (!item || item.available === false) return;
-            selectedItemForCustomization = item;
-            customizerSource = source;
-
-            document.getElementById('customizer-item-name').innerText = item.name;
-            document.getElementById('customizer-item-base-price').innerText = item.price.toFixed(3) + " ر.ع";
-            populateCustomizerSelects();
-            calculateCustomizerPrice();
-            document.getElementById('customizer-modal').classList.remove('hidden');
-        }
-
-        function closeCustomizerModal() {
-            document.getElementById('customizer-modal').classList.add('hidden');
-            selectedItemForCustomization = null;
-        }
-
-        function calculateCustomizerPrice() {
-            if (!selectedItemForCustomization) return;
-            const sizeAdd = parseFloat(document.getElementById('mod-size').value.split('|')[1]) || 0;
-            const milkAdd = parseFloat(document.getElementById('mod-milk').value.split('|')[1]) || 0;
-            const finalPrice = selectedItemForCustomization.price + sizeAdd + milkAdd;
-            document.getElementById('customizer-final-price').innerText = finalPrice.toFixed(3) + " ر.ع";
-        }
-
-        function confirmCustomizedItem() {
-            if (!selectedItemForCustomization) return;
-            const sizeVal = document.getElementById('mod-size').value.split('|');
-            const milkVal = document.getElementById('mod-milk').value.split('|');
-            const sugarText = document.getElementById('mod-sugar').value;
-
-            const finalPrice = selectedItemForCustomization.price + (parseFloat(sizeVal[1])||0) + (parseFloat(milkVal[1])||0);
-            const desc = `${sizeVal[0]}، ${milkVal[0]}، ${sugarText}`;
-
-            const customizedCartItem = {
-                id: selectedItemForCustomization.id,
-                cartItemId: Date.now() + Math.random(),
-                name: selectedItemForCustomization.name,
-                customization: desc,
-                price: finalPrice,
-                qty: 1
-            };
-
-            if (customizerSource === 'customer') {
-                customerCart.push(customizedCartItem);
-                renderCustomerMenu();
-            } else {
-                currentCart.push(customizedCartItem);
-                renderCart();
-            }
-            closeCustomizerModal();
-        }
-
-        function addQuickCustomerCart(id) {
+        // ==================== إدارة المنيو والتوفر ====================
+        function toggleItemAvailability(id) {
             const item = appData.menu.find(i => i.id === id);
-            if (!item || item.available === false) return;
-            customerCart.push({
-                id: item.id,
-                cartItemId: Date.now() + Math.random(),
-                name: item.name,
-                customization: 'افتراضي',
-                price: item.price,
-                qty: 1
-            });
-            renderCustomerMenu();
+            if (!item) return;
+            item.available = item.available === false ? true : false;
+            saveData();
+        }
+
+        function saveMenuItem() {
+            const idInput = document.getElementById('edit-item-id').value;
+            const name = document.getElementById('item-input-name').value.trim();
+            const price = parseFloat(document.getElementById('item-input-price').value);
+            const category = document.getElementById('item-input-cat').value.trim() || "عام";
+
+            if (!name || isNaN(price)) return alert("يرجى إدخال اسم الصنف والسعر بشكل صحيح!");
+
+            if (idInput) {
+                const item = appData.menu.find(i => i.id == idInput);
+                if (item) {
+                    item.name = name;
+                    item.price = price;
+                    item.category = category;
+                }
+            } else {
+                appData.menu.push({ id: Date.now(), name, price, category, available: true });
+            }
+
+            cancelItemEdit();
+            saveData();
+        }
+
+        function editMenuItem(id) {
+            const item = appData.menu.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('edit-item-id').value = item.id;
+            document.getElementById('item-input-name').value = item.name;
+            document.getElementById('item-input-price').value = item.price.toFixed(3);
+            document.getElementById('item-input-cat').value = item.category;
+
+            document.getElementById('form-item-title').innerHTML = `<i class="fa-solid fa-pen text-amber-600"></i> تعديل بيانات: ${escapeHtml(item.name)}`;
+            document.getElementById('btn-save-item').innerText = "حفظ التعديل";
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+        }
+
+        function cancelItemEdit() {
+            document.getElementById('edit-item-id').value = '';
+            document.getElementById('item-input-name').value = '';
+            document.getElementById('item-input-price').value = '';
+            document.getElementById('item-input-cat').value = '';
+
+            document.getElementById('form-item-title').innerHTML = `<i class="fa-solid fa-plus-circle text-amber-600"></i> إضافة صنف جديد للقائمة`;
+            document.getElementById('btn-save-item').innerText = "+ إضافة";
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
+        function deleteMenuItem(id) {
+            if (confirm("هل تريد حذف هذا الصنف من المنيو؟")) {
+                appData.menu = appData.menu.filter(i => i.id !== id);
+                saveData();
+            }
+        }
+
+        function renderSettingsMenu() {
+            const list = document.getElementById('settings-menu-list');
+            document.getElementById('items-count-badge').innerText = `${appData.menu.length} أصناف`;
+            list.innerHTML = appData.menu.map(item => {
+                const isAvail = item.available !== false;
+                return `
+                    <div class="py-3 flex justify-between items-center ${!isAvail ? 'bg-red-50/50 p-2 rounded-xl' : ''}">
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-slate-800 text-xs">${escapeHtml(item.name)}</span>
+                                <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">${escapeHtml(item.category)}</span>
+                            </div>
+                            <span class="text-[11px] font-black text-amber-700 font-mono">${item.price.toFixed(3)} ر.ع</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleItemAvailability(${item.id})" class="px-2.5 py-1 text-xs rounded-lg font-bold transition flex items-center gap-1 ${isAvail ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}">
+                                <i class="fa-solid ${isAvail ? 'fa-check' : 'fa-ban'}"></i>
+                                <span>${isAvail ? 'متوفر' : 'غير متوفر'}</span>
+                            </button>
+                            <button onclick="editMenuItem(${item.id})" class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 rounded bg-blue-50 font-bold transition">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteMenuItem(${item.id})" class="text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded bg-red-50 font-bold transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function saveCafeSettings() {
@@ -1321,10 +1770,10 @@
             appData.cafeSub = document.getElementById('setting-cafe-sub').value.trim() || appData.cafeSub;
             appData.tablesCount = parseInt(document.getElementById('setting-tables-count').value) || 10;
             saveData();
-            alert("تم حفظ إعدادات الكافيه بنجاح!");
+            alert("تم حفظ وتحديث إعدادات الكافيه بنجاح ومزامنتها لكل الأجهزة!");
         }
 
-        // ==================== بدء التشغيل الفعلي ====================
+        // ==================== بدء التشغيل والمزامنة ====================
         window.addEventListener('DOMContentLoaded', () => {
             if (customerTableParam) {
                 initCustomerMode();
