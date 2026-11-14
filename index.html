@@ -50,7 +50,7 @@
             </div>
             <input type="password" id="pin-input" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter') verifyPin()" class="w-full text-center text-2xl tracking-[0.5em] font-mono py-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-600 focus:outline-none">
             <div class="grid grid-cols-2 gap-2">
-                <button onclick="verifyPin()" class="bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl font-bold text-xs transition">دخول</button>
+                <button onclick="verifyPin()" id="pin-submit-btn" class="bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl font-bold text-xs transition">دخول</button>
                 <button onclick="cancelPinAuth()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-xs transition">شاشة الزبون</button>
             </div>
         </div>
@@ -93,8 +93,11 @@
 
         <!-- شريط التصنيفات للزبون + قائمة المنيو مقسمة -->
         <div class="p-4 flex-1 pb-44">
-            <div class="sticky top-[108px] z-10 bg-slate-100/90 backdrop-blur py-2 -mx-4 px-4 mb-3 border-b border-slate-200/60">
-                <div id="cust-categories" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+            <div class="sticky top-[108px] z-10 bg-slate-100/90 backdrop-blur py-2 -mx-4 px-4 mb-3 border-b border-slate-200/60 flex items-center gap-2">
+                <div id="cust-categories" class="flex gap-2 overflow-x-auto no-scrollbar flex-1"></div>
+                <button onclick="loadCustomerInitialData()" class="w-7 h-7 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-amber-600 flex items-center justify-center text-xs shadow-sm" title="تحديث القائمة">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
             </div>
             <div id="cust-menu-list" class="space-y-5"></div>
         </div>
@@ -258,7 +261,7 @@
                         <div class="flex flex-wrap justify-between items-center gap-2">
                             <div>
                                 <h2 class="text-xl font-black text-slate-800">خريطة الطاولات والحالات المباشرة</h2>
-                                <p class="text-xs text-slate-500">تحديث لحظي فور إرسال الزبون لطلبه من الباركود</p>
+                                <p class="text-xs text-slate-500">تحديث لحظي فور إرسال الزبون لطلبه أو إضافته لأصناف جديدة</p>
                             </div>
                             <div class="flex gap-3 text-xs font-bold">
                                 <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> متاحة</span>
@@ -273,10 +276,14 @@
             <!-- تبويب 3: رموز الباركود -->
             <section id="view-qr" class="h-full p-4 lg:p-6 overflow-y-auto hidden">
                 <div class="max-w-5xl mx-auto bg-white p-6 rounded-2xl shadow">
-                    <h2 class="text-lg font-black text-slate-800 mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-qrcode text-amber-600"></i> بطاقات QR الذكية للطاولات
-                    </h2>
-                    <p class="text-xs text-slate-500 mb-6">امسح الباركود لتجربة شاشة الزبون وتخصيص المشروبات مباشرة</p>
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-6">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-800 mb-1 flex items-center gap-2">
+                                <i class="fa-solid fa-qrcode text-amber-600"></i> بطاقات QR الذكية للطاولات
+                            </h2>
+                            <p class="text-xs text-slate-500">امسح الباركود لتجربة شاشة الزبون أو احفظ الصور لطباعتها على الطاولات</p>
+                        </div>
+                    </div>
                     <div id="qr-cards-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
                 </div>
             </section>
@@ -347,7 +354,7 @@
                     <!-- حماية الكاشير (PIN) -->
                     <div class="bg-white p-5 rounded-2xl shadow space-y-3">
                         <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-shield-halved text-amber-600"></i> أمان وحماية الكاشير
+                            <i class="fa-solid fa-shield-halved text-amber-600"></i> أمان وحماية الكاشير (معزول سحابياً)
                         </h3>
                         <div class="flex flex-wrap items-end gap-3">
                             <div>
@@ -558,11 +565,11 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-                <button onclick="finalizePayment('نقد (كاش)')" class="p-3.5 border-2 border-amber-500 hover:bg-amber-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition group">
+                <button id="btn-pay-cash" onclick="finalizePayment('نقد (كاش)')" class="p-3.5 border-2 border-amber-500 hover:bg-amber-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition group">
                     <i class="fa-solid fa-money-bill-wave text-2xl text-amber-600 group-hover:scale-110 transition"></i>
                     <span class="font-bold text-xs text-slate-800">نقد (كاش)</span>
                 </button>
-                <button onclick="finalizePayment('بطاقة (POS)')" class="p-3.5 border-2 border-blue-500 hover:bg-blue-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition group">
+                <button id="btn-pay-card" onclick="finalizePayment('بطاقة (POS)')" class="p-3.5 border-2 border-blue-500 hover:bg-blue-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition group">
                     <i class="fa-solid fa-credit-card text-2xl text-blue-600 group-hover:scale-110 transition"></i>
                     <span class="font-bold text-xs text-slate-800">بطاقة بنكية</span>
                 </button>
@@ -623,10 +630,26 @@
         </div>
     </div>
 
-    <!-- ==================== كود الجافاسكربت الكامل ==================== -->
+    <!-- ==================== كود الجافاسكربت الكامل والمحسن ==================== -->
     <script>
         const FIREBASE_DEFAULT_URL = "https://cafe-c0fd0-default-rtdb.firebaseio.com";
         const DEFAULT_PIN = "1234";
+
+        // محرك الصوت الموحد المتوافق مع iOS Safari
+        let sharedAudioCtx = null;
+        function unlockAudioContext() {
+            if (!sharedAudioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    sharedAudioCtx = new AudioContextClass();
+                }
+            }
+            if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+                sharedAudioCtx.resume();
+            }
+        }
+        document.addEventListener('click', unlockAudioContext, { once: true });
+        document.addEventListener('touchstart', unlockAudioContext, { once: true });
 
         // دالة حساب التاريخ المحلي (توقيت سلطنة عُمان) بدقة لتصفير العداد منتصف الليل
         function getLocalDateString() {
@@ -706,10 +729,11 @@
         let currentCustomerCategory = "الكل";
         let currentCart = [];
         let customerCart = [];
-        let lastKnownBusyCount = 0;
+        let lastKnownItemsTotalQty = 0; // يتتبع إجمالي كميات الأصناف لاكتشاف الطلبات الجديدة أو الإضافات
         let selectedItemForCustomization = null;
         let customizerSource = 'customer';
-        let loadedTakeawayKey = null; // لتتبع طلب السيارة المفتوح حالياً في الكاشير
+        let loadedTakeawayKey = null;
+        let isProcessingPayment = false;
 
         const urlParams = new URLSearchParams(window.location.search);
         const customerTableParam = urlParams.get('table');
@@ -728,7 +752,23 @@
             return (appData.firebaseUrl || FIREBASE_DEFAULT_URL).trim().replace(/\/$/, "");
         }
 
-        // ==================== بوابة قفل الكاشير (PIN) ====================
+        // حساب إجمالي عدد القطع في كل الطلبات النشطة لاكتشاف أي إضافة جديدة من الزبون
+        function calculateActiveItemsQty(tableOrders, takeawayOrders) {
+            let totalQty = 0;
+            Object.values(tableOrders || {}).forEach(ord => {
+                if (ord && Array.isArray(ord.items)) {
+                    totalQty += ord.items.reduce((s, i) => s + (i.qty || 1), 0);
+                }
+            });
+            Object.values(takeawayOrders || {}).forEach(tk => {
+                if (tk && Array.isArray(tk.items)) {
+                    totalQty += tk.items.reduce((s, i) => s + (i.qty || 1), 0);
+                }
+            });
+            return totalQty;
+        }
+
+        // ==================== بوابة قفل الكاشير المعزولة (PIN) ====================
         function checkCashierAuth() {
             const isAuth = sessionStorage.getItem('cashier_authenticated') === 'true';
             if (!isAuth) {
@@ -740,9 +780,25 @@
             }
         }
 
-        function verifyPin() {
+        async function verifyPin() {
+            unlockAudioContext();
             const input = document.getElementById('pin-input').value.trim();
-            if (input === appData.pinCode) {
+            const btn = document.getElementById('pin-submit-btn');
+            btn.disabled = true;
+
+            const dbUrl = getCleanDbUrl();
+            try {
+                // جلب الرمز السري من المسار المعزول عن الزبائن
+                const res = await fetch(`${dbUrl}/cafeAdmin/pinCode.json`);
+                if (res.ok) {
+                    const cloudPin = await res.json();
+                    if (cloudPin) appData.pinCode = String(cloudPin);
+                }
+            } catch (e) {}
+
+            btn.disabled = false;
+
+            if (input === String(appData.pinCode)) {
                 sessionStorage.setItem('cashier_authenticated', 'true');
                 document.getElementById('pin-modal').classList.add('hidden');
                 startCashierApp();
@@ -761,29 +817,60 @@
             location.reload();
         }
 
-        function savePinSetting() {
+        async function savePinSetting() {
             const newPin = document.getElementById('setting-pin').value.trim();
             if (newPin.length < 4) return alert("يرجى إدخال رمز مكون من 4 خانات على الأقل!");
             appData.pinCode = newPin;
-            saveData();
-            alert("تم تحديث رمز PIN للكاشير ومزامنته بنجاح!");
+            localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
+
+            const dbUrl = getCleanDbUrl();
+            try {
+                await fetch(`${dbUrl}/cafeAdmin/pinCode.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPin)
+                });
+            } catch (e) {}
+
+            alert("تم تحديث رمز PIN للكاشير في المسار الآمن بنجاح!");
         }
 
         async function startCashierApp() {
             document.getElementById('cashier-system-app').classList.remove('hidden');
             updateUI();
-            await listenFromCloud(); // سحب شامل مرة واحدة عند فتح النظام
-            setInterval(pollActiveOrdersOnly, 3500); // تحديث لحظي خفيف للطلبات النشطة فقط
+            await listenFromCloud();
+            setInterval(pollActiveOrdersOnly, 3500);
         }
 
-        // ==================== الرقم التسلسلي اليومي والصوت ====================
-        function getNextDailyOrderNumber() {
+        // ==================== الرقم التسلسلي اليومي المزامن والصوت ====================
+        async function getNextDailyOrderNumberAsync() {
             const today = getLocalDateString();
+            const dbUrl = getCleanDbUrl();
+
+            try {
+                const res = await fetch(`${dbUrl}/cafeState/dailySequence.json`);
+                if (res.ok) {
+                    const cloudSeq = await res.json();
+                    if (cloudSeq && cloudSeq.lastDate === today) {
+                        appData.dailySequence = {
+                            lastDate: today,
+                            currentCount: (cloudSeq.currentCount || 0) + 1
+                        };
+                    } else {
+                        appData.dailySequence = { lastDate: today, currentCount: 1 };
+                    }
+                    await fetch(`${dbUrl}/cafeState/dailySequence.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(appData.dailySequence)
+                    });
+                    return appData.dailySequence.currentCount;
+                }
+            } catch (e) {}
+
+            // fallback محلي في حال انقطاع الإنترنت
             if (!appData.dailySequence || appData.dailySequence.lastDate !== today) {
-                appData.dailySequence = {
-                    lastDate: today,
-                    currentCount: 1
-                };
+                appData.dailySequence = { lastDate: today, currentCount: 1 };
             } else {
                 appData.dailySequence.currentCount = (appData.dailySequence.currentCount || 0) + 1;
             }
@@ -792,16 +879,20 @@
 
         function playNotificationSound() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                unlockAudioContext();
+                if (!sharedAudioCtx) return;
+                const now = sharedAudioCtx.currentTime;
+                const osc = sharedAudioCtx.createOscillator();
+                const gain = sharedAudioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.setValueAtTime(1174.66, now + 0.15);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
                 osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.3);
+                gain.connect(sharedAudioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.45);
             } catch (e) {}
         }
 
@@ -857,7 +948,7 @@
             const sizesContainer = document.getElementById('list-sizes');
             sizesContainer.innerHTML = appData.modifiers.sizes.map((s, idx) => `
                 <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
-                    <span>${escapeHtml(s.name)} (+${s.price.toFixed(3)})</span>
+                    <span>${escapeHtml(s.name)} (+${Number(s.price).toFixed(3)})</span>
                     <button onclick="deleteModifierOption('sizes', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
                 </span>
             `).join('');
@@ -865,7 +956,7 @@
             const milksContainer = document.getElementById('list-milks');
             milksContainer.innerHTML = appData.modifiers.milks.map((m, idx) => `
                 <span class="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded text-[11px] font-bold text-slate-700 shadow-sm">
-                    <span>${escapeHtml(m.name)} (+${m.price.toFixed(3)})</span>
+                    <span>${escapeHtml(m.name)} (+${Number(m.price).toFixed(3)})</span>
                     <button onclick="deleteModifierOption('milks', ${idx})" class="text-red-500 hover:text-red-700">✕</button>
                 </span>
             `).join('');
@@ -909,12 +1000,12 @@
         function populateCustomizerSelects() {
             const sizeSelect = document.getElementById('mod-size');
             sizeSelect.innerHTML = appData.modifiers.sizes.map(s => `
-                <option value="${escapeHtml(s.name)}|${s.price}">${escapeHtml(s.name)} (+${s.price.toFixed(3)} ر.ع)</option>
+                <option value="${escapeHtml(s.name)}|${s.price}">${escapeHtml(s.name)} (+${Number(s.price).toFixed(3)} ر.ع)</option>
             `).join('');
 
             const milkSelect = document.getElementById('mod-milk');
             milkSelect.innerHTML = appData.modifiers.milks.map(m => `
-                <option value="${escapeHtml(m.name)}|${m.price}">${escapeHtml(m.name)} (+${m.price.toFixed(3)} ر.ع)</option>
+                <option value="${escapeHtml(m.name)}|${m.price}">${escapeHtml(m.name)} (+${Number(m.price).toFixed(3)} ر.ع)</option>
             `).join('');
 
             const sugarSelect = document.getElementById('mod-sugar');
@@ -931,7 +1022,7 @@
             customizerSource = source;
 
             document.getElementById('customizer-item-name').innerText = item.name;
-            document.getElementById('customizer-item-base-price').innerText = item.price.toFixed(3) + " ر.ع";
+            document.getElementById('customizer-item-base-price').innerText = Number(item.price).toFixed(3) + " ر.ع";
             
             populateCustomizerSelects();
             calculateCustomizerPrice();
@@ -947,7 +1038,7 @@
             if (!selectedItemForCustomization) return;
             const sizeAdd = parseFloat(document.getElementById('mod-size').value.split('|')[1]) || 0;
             const milkAdd = parseFloat(document.getElementById('mod-milk').value.split('|')[1]) || 0;
-            const finalPrice = selectedItemForCustomization.price + sizeAdd + milkAdd;
+            const finalPrice = Number(selectedItemForCustomization.price) + sizeAdd + milkAdd;
             document.getElementById('customizer-final-price').innerText = finalPrice.toFixed(3) + " ر.ع";
         }
 
@@ -964,7 +1055,7 @@
 
             const sugarText = document.getElementById('mod-sugar').value;
 
-            const finalPrice = selectedItemForCustomization.price + sizeAdd + milkAdd;
+            const finalPrice = Number(selectedItemForCustomization.price) + sizeAdd + milkAdd;
             const desc = `${sizeText}، ${milkText}، ${sugarText}`;
 
             const targetCart = customizerSource === 'customer' ? customerCart : currentCart;
@@ -1008,7 +1099,7 @@
                     cartItemId: Date.now() + Math.random(),
                     name: item.name,
                     customization: 'افتراضي',
-                    price: item.price,
+                    price: Number(item.price),
                     qty: 1
                 });
             }
@@ -1100,7 +1191,7 @@
             `).join('');
         }
 
-        // ==================== وضع الزبون (QR Mode) ====================
+        // ==================== وضع الزبون المحسن (بدون استنزاف بيانات) ====================
         async function initCustomerMode() {
             document.getElementById('cashier-system-app').classList.add('hidden');
             document.getElementById('customer-qr-app').classList.remove('hidden');
@@ -1108,11 +1199,15 @@
 
             applyThemes();
             renderCustomerCategories();
-            await loadCustomerDataAndLiveStatus();
-            setInterval(loadCustomerDataAndLiveStatus, 4000);
+            renderCustomerMenu();
+
+            // تحميل المنيو والهوية مرة واحدة فقط عند الدخول
+            await loadCustomerInitialData();
+            // تحديث حالة الطلب فقط كل 4 ثوانٍ بطلب واحد خفيف جداً دون إعادة رسم المنيو
+            setInterval(pollCustomerOrderStatusOnly, 4000);
         }
 
-        async function loadCustomerDataAndLiveStatus() {
+        async function loadCustomerInitialData() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
 
@@ -1157,6 +1252,18 @@
             document.title = `${appData.cafeName} - طاولة ${customerTableParam}`;
             renderCustomerCategories();
             renderCustomerMenu();
+        }
+
+        async function pollCustomerOrderStatusOnly() {
+            const dbUrl = getCleanDbUrl();
+            if (!dbUrl) return;
+            try {
+                const orderRes = await fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`);
+                if (orderRes.ok) {
+                    const orderData = await orderRes.json();
+                    updateCustomerStatusUI(orderData);
+                }
+            } catch (e) {}
         }
 
         function updateCustomerStatusUI(order) {
@@ -1224,7 +1331,7 @@
                                                 <h4 class="font-bold text-sm text-slate-800">${escapeHtml(item.name)}</h4>
                                                 ${!isAvail ? `<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold">نفد المخزون</span>` : ''}
                                             </div>
-                                            <span class="text-xs text-amber-600 font-extrabold font-mono block mt-0.5">${item.price.toFixed(3)} ر.ع</span>
+                                            <span class="text-xs text-amber-600 font-extrabold font-mono block mt-0.5">${Number(item.price).toFixed(3)} ر.ع</span>
                                         </div>
                                         <div>
                                             ${isAvail ? `
@@ -1274,11 +1381,15 @@
             try {
                 let mergedItems = [...customerCart];
                 let existingNote = "";
+                let existingStatus = "تم الاستلام";
+                let isAdditionalOrder = false;
 
                 const checkRes = await fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`);
                 if (checkRes.ok) {
                     const currentOrder = await checkRes.json();
-                    if (currentOrder && Array.isArray(currentOrder.items)) {
+                    if (currentOrder && Array.isArray(currentOrder.items) && currentOrder.items.length > 0) {
+                        isAdditionalOrder = true;
+                        existingStatus = currentOrder.status || "تم الاستلام";
                         const oldItems = [...currentOrder.items];
                         customerCart.forEach(newItem => {
                             const match = oldItems.find(old => old.id === newItem.id && old.customization === newItem.customization);
@@ -1301,8 +1412,9 @@
                     items: mergedItems,
                     note: finalNote,
                     time: new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
-                    status: 'تم الاستلام',
-                    source: 'باركود الطاولة'
+                    status: existingStatus,
+                    hasNewAddition: isAdditionalOrder,
+                    source: isAdditionalOrder ? 'باركود (إضافة جديدة 🔔)' : 'باركود الطاولة'
                 };
 
                 const res = await fetch(`${dbUrl}/cafeState/activeTableOrders/${customerTableParam}.json`, {
@@ -1365,7 +1477,7 @@
             appData.categories = Array.from(dynamicCats);
         }
 
-        // حفظ الإعدادات والمنيو والترقيم دون إرسال سجل الفواتير الضخم في كل ضغطة
+        // حفظ الإعدادات والمنيو دون تضمين الرمز السري العام أو سجل الفواتير الضخم
         async function syncToCloud() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
@@ -1374,7 +1486,6 @@
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        pinCode: appData.pinCode,
                         cafeName: appData.cafeName,
                         cafeSub: appData.cafeSub,
                         tablesCount: appData.tablesCount,
@@ -1390,7 +1501,7 @@
             }
         }
 
-        // دالة خفيفة جداً تعمل كل 3.5 ثانية لسحب الطلبات النشطة (الطاولات + السيارات) فقط
+        // دالة خفيفة تعمل كل 3.5 ثانية وتكتشف الطلبات الجديدة أو الإضافات على الطاولات النشطة
         async function pollActiveOrdersOnly() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
@@ -1405,11 +1516,11 @@
                 const cloudTableOrders = (await tablesRes.json()) || {};
                 const cloudTakeawayOrders = takeawayRes.ok ? ((await takeawayRes.json()) || {}) : {};
 
-                const newBusyCount = Object.keys(cloudTableOrders).length + Object.keys(cloudTakeawayOrders).length;
-                if (newBusyCount > lastKnownBusyCount) {
+                const newItemsTotalQty = calculateActiveItemsQty(cloudTableOrders, cloudTakeawayOrders);
+                if (newItemsTotalQty > lastKnownItemsTotalQty) {
                     playNotificationSound();
                 }
-                lastKnownBusyCount = newBusyCount;
+                lastKnownItemsTotalQty = newItemsTotalQty;
 
                 appData.activeTableOrders = cloudTableOrders;
                 appData.activeTakeawayOrders = cloudTakeawayOrders;
@@ -1423,16 +1534,24 @@
             }
         }
 
-        // دالة السحب الشامل (تعمل مرة واحدة عند بدء التشغيل أو عند تحديث الأرشيف)
+        // دالة السحب الشامل عند بدء التشغيل أو تحديث السجل
         async function listenFromCloud() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
             try {
-                const res = await fetch(`${dbUrl}/cafeState.json`);
-                if (!res.ok) throw new Error("Offline");
-                const cloudState = await res.json();
+                const [stateRes, pinRes] = await Promise.all([
+                    fetch(`${dbUrl}/cafeState.json`),
+                    fetch(`${dbUrl}/cafeAdmin/pinCode.json`)
+                ]);
+
+                if (pinRes && pinRes.ok) {
+                    const savedPin = await pinRes.json();
+                    if (savedPin) appData.pinCode = String(savedPin);
+                }
+
+                if (!stateRes.ok) throw new Error("Offline");
+                const cloudState = await stateRes.json();
                 if (cloudState) {
-                    if (cloudState.pinCode) appData.pinCode = cloudState.pinCode;
                     if (cloudState.menu) appData.menu = cloudState.menu;
                     if (cloudState.modifiers) appData.modifiers = cloudState.modifiers;
                     if (cloudState.theme) {
@@ -1455,7 +1574,7 @@
 
                     appData.activeTableOrders = cloudState.activeTableOrders || {};
                     appData.activeTakeawayOrders = cloudState.activeTakeawayOrders || {};
-                    lastKnownBusyCount = Object.keys(appData.activeTableOrders).length + Object.keys(appData.activeTakeawayOrders).length;
+                    lastKnownItemsTotalQty = calculateActiveItemsQty(appData.activeTableOrders, appData.activeTakeawayOrders);
 
                     localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
                     updateUI();
@@ -1481,7 +1600,7 @@
 
         function saveData() {
             localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
-            lastKnownBusyCount = Object.keys(appData.activeTableOrders || {}).length + Object.keys(appData.activeTakeawayOrders || {}).length;
+            lastKnownItemsTotalQty = calculateActiveItemsQty(appData.activeTableOrders, appData.activeTakeawayOrders);
             syncToCloud();
             updateUI();
         }
@@ -1530,7 +1649,7 @@
                             <h3 class="font-bold text-slate-800 mt-2 text-sm line-clamp-1">${escapeHtml(item.name)}</h3>
                         </div>
                         <div class="mt-3 flex justify-between items-center pt-2 border-t border-slate-100">
-                            <span class="font-black text-slate-900 font-mono text-xs">${item.price.toFixed(3)} <small class="font-normal text-[10px]">ر.ع</small></span>
+                            <span class="font-black text-slate-900 font-mono text-xs">${Number(item.price).toFixed(3)} <small class="font-normal text-[10px]">ر.ع</small></span>
                             <div class="flex items-center gap-1">
                                 ${isAvail ? `
                                     <button onclick="openCustomizer(${item.id}, 'pos')" class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 flex items-center justify-center text-xs font-bold" title="تخصيص">
@@ -1560,7 +1679,7 @@
                     cartItemId: Date.now() + Math.random(),
                     name: item.name,
                     customization: 'افتراضي',
-                    price: item.price,
+                    price: Number(item.price),
                     qty: 1
                 });
             }
@@ -1618,7 +1737,7 @@
                         <div>
                             <h4 class="font-bold text-xs text-slate-800">${escapeHtml(item.name)}</h4>
                             <p class="text-[9px] text-slate-400">${escapeHtml(item.customization || '')}</p>
-                            <span class="text-[10px] text-slate-500 font-mono">${item.price.toFixed(3)} ر.ع</span>
+                            <span class="text-[10px] text-slate-500 font-mono">${Number(item.price).toFixed(3)} ر.ع</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <button onclick="changeCartQty(${item.cartItemId}, -1)" class="w-6 h-6 bg-slate-200 rounded-lg text-slate-700 font-bold text-xs">-</button>
@@ -1648,7 +1767,7 @@
             posSelect.innerHTML = options;
         }
 
-        // تعليق الطلب للتحضير (يدعم الطاولات + طلبات السيارات الخارجية) مع الحفاظ على الملاحظات
+        // تعليق الطلب للتحضير (يدعم الطاولات + طلبات السيارات الخارجية)
         async function submitOrder(status) {
             if (currentCart.length === 0) return alert("يرجى اختيار أصناف أولاً!");
             const orderType = document.getElementById('order-type').value;
@@ -1671,6 +1790,7 @@
                         note: finalNote,
                         time: existingOrder.time || new Date().toLocaleTimeString('ar-OM', { hour: '2-digit', minute: '2-digit' }),
                         status: existingOrder.status || 'تم الاستلام',
+                        hasNewAddition: false,
                         source: existingOrder.source || 'كاشير'
                     };
                     appData.activeTableOrders[tableNum] = orderPayload;
@@ -1687,7 +1807,6 @@
                     saveData();
                     alert(`✅ تم تعليق الطلب لطاولة (${tableNum}) ومزامنته للتحضير`);
                 } else {
-                    // تعليق طلب سيارة / سفري في قائمة التحضير
                     const takeawayKey = loadedTakeawayKey || ('car_' + Date.now());
                     const existingTakeaway = appData.activeTakeawayOrders[takeawayKey] || {};
                     const carLabel = carNum || existingTakeaway.carNumber || 'سفري عام';
@@ -1719,7 +1838,7 @@
             }
         }
 
-        // ==================== الدفع بالترقيم اليومي المتسلسل ورقم السيارة ====================
+        // ==================== الدفع الآمن بالترقيم اليومي المتسلسل المزامن ====================
         let pendingCheckoutOrder = null;
 
         function openPaymentModal() {
@@ -1758,60 +1877,63 @@
         }
 
         async function finalizePayment(paymentMethod) {
-            if (!pendingCheckoutOrder) return;
+            if (!pendingCheckoutOrder || isProcessingPayment) return;
+            isProcessingPayment = true;
 
-            const dailyNum = getNextDailyOrderNumber();
-            const orderTimestamp = Date.now();
-            const orderKey = 'ord_' + orderTimestamp;
+            const cashBtn = document.getElementById('btn-pay-cash');
+            const cardBtn = document.getElementById('btn-pay-card');
+            if (cashBtn) cashBtn.disabled = true;
+            if (cardBtn) cardBtn.disabled = true;
 
-            const completed = {
-                id: orderTimestamp.toString().slice(-5),
-                timestamp: orderTimestamp,
-                dailyNumber: dailyNum,
-                type: pendingCheckoutOrder.type,
-                carNumber: pendingCheckoutOrder.carNumber || '',
-                note: pendingCheckoutOrder.note || '',
-                items: [...pendingCheckoutOrder.items],
-                time: new Date().toLocaleString('ar-OM'),
-                paymentMethod: paymentMethod,
-                total: pendingCheckoutOrder.total
-            };
-
-            appData.completedOrders.unshift(completed);
-
-            const dbUrl = getCleanDbUrl();
-
-            // حفظ الفاتورة الجديدة في مسارها المستقل لمنع التضارب
             try {
+                const dailyNum = await getNextDailyOrderNumberAsync();
+                const orderTimestamp = Date.now();
+                const orderKey = 'ord_' + orderTimestamp;
+
+                const completed = {
+                    id: orderTimestamp.toString().slice(-5),
+                    timestamp: orderTimestamp,
+                    dailyNumber: dailyNum,
+                    type: pendingCheckoutOrder.type,
+                    carNumber: pendingCheckoutOrder.carNumber || '',
+                    note: pendingCheckoutOrder.note || '',
+                    items: [...pendingCheckoutOrder.items],
+                    time: new Date().toLocaleString('ar-OM'),
+                    paymentMethod: paymentMethod,
+                    total: pendingCheckoutOrder.total
+                };
+
+                appData.completedOrders.unshift(completed);
+
+                const dbUrl = getCleanDbUrl();
+
                 await fetch(`${dbUrl}/cafeState/completedOrders/${orderKey}.json`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(completed)
-                });
-            } catch(e) {}
+                }).catch(() => {});
 
-            // إذا كان الطلب لطاولة نشطة، نحذفه من الطاولات النشطة بعد السداد
-            if (pendingCheckoutOrder.tableNum && appData.activeTableOrders[pendingCheckoutOrder.tableNum]) {
-                const tNum = pendingCheckoutOrder.tableNum;
-                delete appData.activeTableOrders[tNum];
-                try {
-                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tNum}.json`, { method: 'DELETE' });
-                } catch(e) {}
+                if (pendingCheckoutOrder.tableNum && appData.activeTableOrders[pendingCheckoutOrder.tableNum]) {
+                    const tNum = pendingCheckoutOrder.tableNum;
+                    delete appData.activeTableOrders[tNum];
+                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tNum}.json`, { method: 'DELETE' }).catch(() => {});
+                }
+
+                if (pendingCheckoutOrder.takeawayKey && appData.activeTakeawayOrders[pendingCheckoutOrder.takeawayKey]) {
+                    const tkKey = pendingCheckoutOrder.takeawayKey;
+                    delete appData.activeTakeawayOrders[tkKey];
+                    await fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${tkKey}.json`, { method: 'DELETE' }).catch(() => {});
+                }
+
+                clearCart();
+                closePaymentModal();
+                saveData();
+                showReceiptModal(completed);
+            } finally {
+                isProcessingPayment = false;
+                if (cashBtn) cashBtn.disabled = false;
+                if (cardBtn) cardBtn.disabled = false;
             }
-
-            // إذا كان الطلب لسيارة معلقة، نحذفه من قائمة انتظار السيارات بعد السداد
-            if (pendingCheckoutOrder.takeawayKey && appData.activeTakeawayOrders[pendingCheckoutOrder.takeawayKey]) {
-                const tkKey = pendingCheckoutOrder.takeawayKey;
-                delete appData.activeTakeawayOrders[tkKey];
-                try {
-                    await fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${tkKey}.json`, { method: 'DELETE' });
-                } catch(e) {}
-            }
-
-            clearCart();
-            closePaymentModal();
-            saveData();
-            showReceiptModal(completed);
         }
 
         // ==================== خريطة الطاولات + شاشة طلبات السيارات ====================
@@ -1902,13 +2024,14 @@
                 if (active && active.items) {
                     const total = active.items.reduce((s, it) => s + (it.price * it.qty), 0);
                     const currentStatus = active.status || 'تم الاستلام';
+                    const hasAddition = active.hasNewAddition === true;
                     html += `
-                        <div class="bg-red-50/80 border-2 border-red-400 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+                        <div class="bg-red-50/80 border-2 ${hasAddition ? 'border-amber-500 ring-2 ring-amber-400' : 'border-red-400'} rounded-2xl p-4 flex flex-col justify-between shadow-sm">
                             <div>
                                 <div class="flex justify-between items-start">
                                     <span class="font-black text-base text-red-700">طاولة رقم ${i}</span>
                                     <div class="flex items-center gap-1">
-                                        <span class="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">${escapeHtml(active.source || 'طلب')}</span>
+                                        <span class="text-[10px] ${hasAddition ? 'bg-amber-600 animate-bounce' : 'bg-red-600'} text-white font-bold px-2 py-0.5 rounded-full">${escapeHtml(active.source || 'طلب')}</span>
                                         <button onclick="cancelTableOrder(${i})" class="w-5 h-5 rounded-full bg-red-200 hover:bg-red-300 text-red-800 text-[10px] font-bold flex items-center justify-center" title="إلغاء وحذف الطلب">✕</button>
                                     </div>
                                 </div>
@@ -2032,12 +2155,18 @@
         async function updateTableStatus(tableNum, newStatus) {
             if (appData.activeTableOrders && appData.activeTableOrders[tableNum]) {
                 appData.activeTableOrders[tableNum].status = newStatus;
+                appData.activeTableOrders[tableNum].hasNewAddition = false;
+                appData.activeTableOrders[tableNum].source = 'باركود الطاولة';
                 const dbUrl = getCleanDbUrl();
                 try {
-                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}/status.json`, {
-                        method: 'PUT',
+                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
+                        method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newStatus)
+                        body: JSON.stringify({
+                            status: newStatus,
+                            hasNewAddition: false,
+                            source: 'باركود الطاولة'
+                        })
                     });
                 } catch(e) {}
                 saveData();
@@ -2093,13 +2222,16 @@
 
             for (let i = 1; i <= appData.tablesCount; i++) {
                 const tableUrl = `${baseUrl}?table=${i}`;
-                const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(tableUrl)}`;
+                const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(tableUrl)}`;
                 qrHtml += `
                     <div class="border border-slate-200 rounded-2xl p-4 text-center bg-slate-50/50 flex flex-col items-center shadow-sm">
                         <span class="font-black text-xs text-amber-700">${escapeHtml(appData.cafeName)}</span>
-                        <img src="${qrImgUrl}" alt="QR Table ${i}" class="w-28 h-28 my-2 border p-1.5 bg-white rounded-xl shadow-sm">
+                        <img src="${qrImgUrl}" alt="QR Table ${i}" loading="lazy" class="w-28 h-28 my-2 border p-1.5 bg-white rounded-xl shadow-sm">
                         <span class="font-extrabold text-sm text-slate-800">طاولة رقم ${i}</span>
-                        <a href="${tableUrl}" target="_blank" class="text-[11px] text-blue-600 font-bold hover:underline mt-1">فتح شاشة العميل ↗</a>
+                        <div class="flex gap-2 mt-2">
+                            <a href="${tableUrl}" target="_blank" class="text-[11px] bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-200 transition">فتح الشاشة ↗</a>
+                            <a href="${qrImgUrl}" target="_blank" download="QR_Table_${i}.png" class="text-[11px] bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg font-bold hover:bg-slate-300 transition" title="حفظ صورة الباركود">حفظ صورة</a>
+                        </div>
                     </div>
                 `;
             }
@@ -2285,7 +2417,7 @@
 
             document.getElementById('edit-item-id').value = item.id;
             document.getElementById('item-input-name').value = item.name;
-            document.getElementById('item-input-price').value = item.price.toFixed(3);
+            document.getElementById('item-input-price').value = Number(item.price).toFixed(3);
             document.getElementById('item-input-cat').value = item.category;
 
             document.getElementById('form-item-title').innerHTML = `<i class="fa-solid fa-pen text-amber-600"></i> تعديل بيانات: ${escapeHtml(item.name)}`;
@@ -2323,7 +2455,7 @@
                                 <span class="font-bold text-slate-800 text-xs">${escapeHtml(item.name)}</span>
                                 <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">${escapeHtml(item.category)}</span>
                             </div>
-                            <span class="text-[11px] font-black text-amber-700 font-mono">${item.price.toFixed(3)} ر.ع</span>
+                            <span class="text-[11px] font-black text-amber-700 font-mono">${Number(item.price).toFixed(3)} ر.ع</span>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="toggleItemAvailability(${item.id})" class="px-2.5 py-1 text-xs rounded-lg font-bold transition flex items-center gap-1 ${isAvail ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}">
