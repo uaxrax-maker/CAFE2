@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- مكتبة تحويل الفاتورة إلى PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- مكتبة توليد PDF السريعة والمباشرة بدون تعليق -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Tajawal', sans-serif; }
         .active-tab { background-color: #d97706 !important; color: #ffffff !important; }
@@ -620,7 +620,7 @@
                 <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow">
                     <i class="fa-solid fa-print"></i> طباعة
                 </button>
-                <button onclick="downloadReceiptPDF()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow">
+                <button id="btn-download-pdf" onclick="downloadReceiptPDF()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1 shadow">
                     <i class="fa-solid fa-file-pdf"></i> حفظ PDF
                 </button>
                 <button onclick="closeReceiptModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
@@ -630,7 +630,7 @@
         </div>
     </div>
 
-    <!-- ==================== كود الجافاسكربت الكامل والمحسن ==================== -->
+    <!-- ==================== كود الجافاسكربت الكامل والسريع ==================== -->
     <script>
         const FIREBASE_DEFAULT_URL = "https://cafe-c0fd0-default-rtdb.firebaseio.com";
         const DEFAULT_PIN = "1234";
@@ -729,11 +729,11 @@
         let currentCustomerCategory = "الكل";
         let currentCart = [];
         let customerCart = [];
-        let lastKnownItemsTotalQty = 0; // يتتبع إجمالي كميات الأصناف لاكتشاف الطلبات الجديدة أو الإضافات
+        let lastKnownItemsTotalQty = 0;
         let selectedItemForCustomization = null;
         let customizerSource = 'customer';
         let loadedTakeawayKey = null;
-        let isProcessingPayment = false;
+        let currentReceiptOrder = null;
 
         const urlParams = new URLSearchParams(window.location.search);
         const customerTableParam = urlParams.get('table');
@@ -752,7 +752,6 @@
             return (appData.firebaseUrl || FIREBASE_DEFAULT_URL).trim().replace(/\/$/, "");
         }
 
-        // حساب إجمالي عدد القطع في كل الطلبات النشطة لاكتشاف أي إضافة جديدة من الزبون
         function calculateActiveItemsQty(tableOrders, takeawayOrders) {
             let totalQty = 0;
             Object.values(tableOrders || {}).forEach(ord => {
@@ -788,7 +787,6 @@
 
             const dbUrl = getCleanDbUrl();
             try {
-                // جلب الرمز السري من المسار المعزول عن الزبائن
                 const res = await fetch(`${dbUrl}/cafeAdmin/pinCode.json`);
                 if (res.ok) {
                     const cloudPin = await res.json();
@@ -824,13 +822,11 @@
             localStorage.setItem('cloud_cafe_pos_data', JSON.stringify(appData));
 
             const dbUrl = getCleanDbUrl();
-            try {
-                await fetch(`${dbUrl}/cafeAdmin/pinCode.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newPin)
-                });
-            } catch (e) {}
+            fetch(`${dbUrl}/cafeAdmin/pinCode.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPin)
+            }).catch(() => {});
 
             alert("تم تحديث رمز PIN للكاشير في المسار الآمن بنجاح!");
         }
@@ -842,35 +838,14 @@
             setInterval(pollActiveOrdersOnly, 3500);
         }
 
-        // ==================== الرقم التسلسلي اليومي المزامن والصوت ====================
-        async function getNextDailyOrderNumberAsync() {
+        // ==================== الرقم التسلسلي الفوري (بدون تأخير) والصوت ====================
+        function getNextDailyOrderNumberInstant() {
             const today = getLocalDateString();
-            const dbUrl = getCleanDbUrl();
-
-            try {
-                const res = await fetch(`${dbUrl}/cafeState/dailySequence.json`);
-                if (res.ok) {
-                    const cloudSeq = await res.json();
-                    if (cloudSeq && cloudSeq.lastDate === today) {
-                        appData.dailySequence = {
-                            lastDate: today,
-                            currentCount: (cloudSeq.currentCount || 0) + 1
-                        };
-                    } else {
-                        appData.dailySequence = { lastDate: today, currentCount: 1 };
-                    }
-                    await fetch(`${dbUrl}/cafeState/dailySequence.json`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(appData.dailySequence)
-                    });
-                    return appData.dailySequence.currentCount;
-                }
-            } catch (e) {}
-
-            // fallback محلي في حال انقطاع الإنترنت
             if (!appData.dailySequence || appData.dailySequence.lastDate !== today) {
-                appData.dailySequence = { lastDate: today, currentCount: 1 };
+                appData.dailySequence = {
+                    lastDate: today,
+                    currentCount: 1
+                };
             } else {
                 appData.dailySequence.currentCount = (appData.dailySequence.currentCount || 0) + 1;
             }
@@ -1191,7 +1166,7 @@
             `).join('');
         }
 
-        // ==================== وضع الزبون المحسن (بدون استنزاف بيانات) ====================
+        // ==================== وضع الزبون المحسن ====================
         async function initCustomerMode() {
             document.getElementById('cashier-system-app').classList.add('hidden');
             document.getElementById('customer-qr-app').classList.remove('hidden');
@@ -1201,9 +1176,7 @@
             renderCustomerCategories();
             renderCustomerMenu();
 
-            // تحميل المنيو والهوية مرة واحدة فقط عند الدخول
             await loadCustomerInitialData();
-            // تحديث حالة الطلب فقط كل 4 ثوانٍ بطلب واحد خفيف جداً دون إعادة رسم المنيو
             setInterval(pollCustomerOrderStatusOnly, 4000);
         }
 
@@ -1477,31 +1450,24 @@
             appData.categories = Array.from(dynamicCats);
         }
 
-        // حفظ الإعدادات والمنيو دون تضمين الرمز السري العام أو سجل الفواتير الضخم
-        async function syncToCloud() {
+        function syncToCloud() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
-            try {
-                const res = await fetch(`${dbUrl}/cafeState.json`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        cafeName: appData.cafeName,
-                        cafeSub: appData.cafeSub,
-                        tablesCount: appData.tablesCount,
-                        theme: appData.theme,
-                        dailySequence: appData.dailySequence,
-                        menu: appData.menu,
-                        modifiers: appData.modifiers
-                    })
-                });
-                updateCloudBadge(res.ok);
-            } catch (e) {
-                updateCloudBadge(false);
-            }
+            fetch(`${dbUrl}/cafeState.json`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cafeName: appData.cafeName,
+                    cafeSub: appData.cafeSub,
+                    tablesCount: appData.tablesCount,
+                    theme: appData.theme,
+                    dailySequence: appData.dailySequence,
+                    menu: appData.menu,
+                    modifiers: appData.modifiers
+                })
+            }).then(res => updateCloudBadge(res.ok)).catch(() => updateCloudBadge(false));
         }
 
-        // دالة خفيفة تعمل كل 3.5 ثانية وتكتشف الطلبات الجديدة أو الإضافات على الطاولات النشطة
         async function pollActiveOrdersOnly() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
@@ -1534,7 +1500,6 @@
             }
         }
 
-        // دالة السحب الشامل عند بدء التشغيل أو تحديث السجل
         async function listenFromCloud() {
             const dbUrl = getCleanDbUrl();
             if (!dbUrl) return;
@@ -1756,9 +1721,11 @@
             document.getElementById('car-number-wrapper').classList.toggle('hidden', type !== 'takeaway');
         }
 
-                function renderTableSelects() {
+        // الحفاظ على رقم الطاولة المختار أثناء التحديث اللحظي
+        function renderTableSelects() {
             const posSelect = document.getElementById('order-table');
-            const currentVal = posSelect.value; // حفظ الطاولة المحددة حالياً قبل التحديث
+            if (!posSelect) return;
+            const prevSelected = posSelect.value;
             let options = '';
             const activeOrders = appData.activeTableOrders || {};
             for (let i = 1; i <= appData.tablesCount; i++) {
@@ -1766,16 +1733,13 @@
                 options += `<option value="${i}">طاولة ${i}${isBusy}</option>`;
             }
             posSelect.innerHTML = options;
-            
-            // الحفاظ على اختيار الكاشير للطاولة الحالية وعدم إعادتها لطاولة 1
-            if (currentVal && document.querySelector(`#order-table option[value="${currentVal}"]`)) {
-                posSelect.value = currentVal;
+            if (prevSelected && Number(prevSelected) <= appData.tablesCount) {
+                posSelect.value = prevSelected;
             }
         }
 
-
-        // تعليق الطلب للتحضير (يدعم الطاولات + طلبات السيارات الخارجية)
-        async function submitOrder(status) {
+        // تعليق الطلب بشكل فوري بدون انتظار السيرفر
+        function submitOrder(status) {
             if (currentCart.length === 0) return alert("يرجى اختيار أصناف أولاً!");
             const orderType = document.getElementById('order-type').value;
             const tableNum = document.getElementById('order-table').value;
@@ -1801,18 +1765,16 @@
                         source: existingOrder.source || 'كاشير'
                     };
                     appData.activeTableOrders[tableNum] = orderPayload;
-                    
-                    try {
-                        await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(orderPayload)
-                        });
-                    } catch(e) {}
-
                     clearCart();
                     saveData();
-                    alert(`✅ تم تعليق الطلب لطاولة (${tableNum}) ومزامنته للتحضير`);
+
+                    fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderPayload)
+                    }).catch(() => {});
+
+                    alert(`✅ تم تعليق الطلب لطاولة (${tableNum}) للتحضير`);
                 } else {
                     const takeawayKey = loadedTakeawayKey || ('car_' + Date.now());
                     const existingTakeaway = appData.activeTakeawayOrders[takeawayKey] || {};
@@ -1829,23 +1791,21 @@
                     };
 
                     appData.activeTakeawayOrders[takeawayKey] = takeawayPayload;
-
-                    try {
-                        await fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${takeawayKey}.json`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(takeawayPayload)
-                        });
-                    } catch(e) {}
-
                     clearCart();
                     saveData();
+
+                    fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${takeawayKey}.json`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(takeawayPayload)
+                    }).catch(() => {});
+
                     alert(`🚗 تم تعليق طلب السيارة (${carLabel}) في شاشة التحضير!`);
                 }
             }
         }
 
-        // ==================== الدفع الآمن بالترقيم اليومي المتسلسل المزامن ====================
+        // ==================== الدفع وإصدار الفاتورة الفوري (0 ثانية تأخير) ====================
         let pendingCheckoutOrder = null;
 
         function openPaymentModal() {
@@ -1883,63 +1843,59 @@
             pendingCheckoutOrder = null;
         }
 
-        async function finalizePayment(paymentMethod) {
-            if (!pendingCheckoutOrder || isProcessingPayment) return;
-            isProcessingPayment = true;
+        function finalizePayment(paymentMethod) {
+            if (!pendingCheckoutOrder) return;
 
-            const cashBtn = document.getElementById('btn-pay-cash');
-            const cardBtn = document.getElementById('btn-pay-card');
-            if (cashBtn) cashBtn.disabled = true;
-            if (cardBtn) cardBtn.disabled = true;
+            const checkoutSnapshot = { ...pendingCheckoutOrder };
+            const dailyNum = getNextDailyOrderNumberInstant();
+            const orderTimestamp = Date.now();
+            const orderKey = 'ord_' + orderTimestamp;
 
-            try {
-                const dailyNum = await getNextDailyOrderNumberAsync();
-                const orderTimestamp = Date.now();
-                const orderKey = 'ord_' + orderTimestamp;
+            const completed = {
+                id: orderTimestamp.toString().slice(-5),
+                timestamp: orderTimestamp,
+                dailyNumber: dailyNum,
+                type: checkoutSnapshot.type,
+                carNumber: checkoutSnapshot.carNumber || '',
+                note: checkoutSnapshot.note || '',
+                items: [...checkoutSnapshot.items],
+                time: new Date().toLocaleString('ar-OM'),
+                paymentMethod: paymentMethod,
+                total: checkoutSnapshot.total
+            };
 
-                const completed = {
-                    id: orderTimestamp.toString().slice(-5),
-                    timestamp: orderTimestamp,
-                    dailyNumber: dailyNum,
-                    type: pendingCheckoutOrder.type,
-                    carNumber: pendingCheckoutOrder.carNumber || '',
-                    note: pendingCheckoutOrder.note || '',
-                    items: [...pendingCheckoutOrder.items],
-                    time: new Date().toLocaleString('ar-OM'),
-                    paymentMethod: paymentMethod,
-                    total: pendingCheckoutOrder.total
-                };
+            appData.completedOrders.unshift(completed);
 
-                appData.completedOrders.unshift(completed);
+            if (checkoutSnapshot.tableNum && appData.activeTableOrders[checkoutSnapshot.tableNum]) {
+                delete appData.activeTableOrders[checkoutSnapshot.tableNum];
+            }
+            if (checkoutSnapshot.takeawayKey && appData.activeTakeawayOrders[checkoutSnapshot.takeawayKey]) {
+                delete appData.activeTakeawayOrders[checkoutSnapshot.takeawayKey];
+            }
 
-                const dbUrl = getCleanDbUrl();
+            // فتح الفاتورة فوراً في نفس اللحظة بدون انتظار الشبكة
+            clearCart();
+            closePaymentModal();
+            saveData();
+            showReceiptModal(completed);
 
-                await fetch(`${dbUrl}/cafeState/completedOrders/${orderKey}.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(completed)
+            // مزامنة السيرفر في الخلفية بصمت
+            const dbUrl = getCleanDbUrl();
+            fetch(`${dbUrl}/cafeState/completedOrders/${orderKey}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(completed)
+            }).catch(() => {});
+
+            if (checkoutSnapshot.tableNum) {
+                fetch(`${dbUrl}/cafeState/activeTableOrders/${checkoutSnapshot.tableNum}.json`, {
+                    method: 'DELETE'
                 }).catch(() => {});
-
-                if (pendingCheckoutOrder.tableNum && appData.activeTableOrders[pendingCheckoutOrder.tableNum]) {
-                    const tNum = pendingCheckoutOrder.tableNum;
-                    delete appData.activeTableOrders[tNum];
-                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tNum}.json`, { method: 'DELETE' }).catch(() => {});
-                }
-
-                if (pendingCheckoutOrder.takeawayKey && appData.activeTakeawayOrders[pendingCheckoutOrder.takeawayKey]) {
-                    const tkKey = pendingCheckoutOrder.takeawayKey;
-                    delete appData.activeTakeawayOrders[tkKey];
-                    await fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${tkKey}.json`, { method: 'DELETE' }).catch(() => {});
-                }
-
-                clearCart();
-                closePaymentModal();
-                saveData();
-                showReceiptModal(completed);
-            } finally {
-                isProcessingPayment = false;
-                if (cashBtn) cashBtn.disabled = false;
-                if (cardBtn) cardBtn.disabled = false;
+            }
+            if (checkoutSnapshot.takeawayKey) {
+                fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${checkoutSnapshot.takeawayKey}.json`, {
+                    method: 'DELETE'
+                }).catch(() => {});
             }
         }
 
@@ -1968,7 +1924,6 @@
                 takeawayBadge.innerText = `${busyTakeawayCount} طلبات`;
             }
 
-            // 1. رسم بطاقات طلبات السيارات / السفري
             if (takeawayGrid) {
                 const takeawayList = Object.values(activeTakeaways);
                 if (takeawayList.length === 0) {
@@ -2024,7 +1979,6 @@
                 }
             }
 
-            // 2. رسم بطاقات الطاولات
             let html = '';
             for (let i = 1; i <= appData.tablesCount; i++) {
                 const active = activeOrders[i];
@@ -2087,30 +2041,25 @@
             grid.innerHTML = html;
         }
 
-        // دوال التحكم بطلبات السيارات (السفري)
-        async function updateTakeawayStatus(key, newStatus) {
+        function updateTakeawayStatus(key, newStatus) {
             if (appData.activeTakeawayOrders && appData.activeTakeawayOrders[key]) {
                 appData.activeTakeawayOrders[key].status = newStatus;
-                const dbUrl = getCleanDbUrl();
-                try {
-                    await fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${key}/status.json`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newStatus)
-                    });
-                } catch(e) {}
                 saveData();
+                const dbUrl = getCleanDbUrl();
+                fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${key}/status.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newStatus)
+                }).catch(() => {});
             }
         }
 
-        async function cancelTakeawayOrder(key) {
+        function cancelTakeawayOrder(key) {
             if (!confirm("هل أنت متأكد من إلغاء وحذف طلب السيارة هذا نهائياً؟")) return;
             delete appData.activeTakeawayOrders[key];
-            const dbUrl = getCleanDbUrl();
-            try {
-                await fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${key}.json`, { method: 'DELETE' });
-            } catch (e) {}
             saveData();
+            const dbUrl = getCleanDbUrl();
+            fetch(`${dbUrl}/cafeState/activeTakeawayOrders/${key}.json`, { method: 'DELETE' }).catch(() => {});
         }
 
         function loadTakeawayToPOS(key) {
@@ -2148,35 +2097,30 @@
             document.getElementById('payment-modal').classList.remove('hidden');
         }
 
-        // دوال التحكم بطلبات الطاولات
-        async function cancelTableOrder(tableNum) {
+        function cancelTableOrder(tableNum) {
             if (!confirm(`هل أنت متأكد من إلغاء وحذف طلب طاولة رقم (${tableNum}) نهائياً دون تسجيله في المبيعات؟`)) return;
             delete appData.activeTableOrders[tableNum];
-            const dbUrl = getCleanDbUrl();
-            try {
-                await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, { method: 'DELETE' });
-            } catch (e) {}
             saveData();
+            const dbUrl = getCleanDbUrl();
+            fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, { method: 'DELETE' }).catch(() => {});
         }
 
-        async function updateTableStatus(tableNum, newStatus) {
+        function updateTableStatus(tableNum, newStatus) {
             if (appData.activeTableOrders && appData.activeTableOrders[tableNum]) {
                 appData.activeTableOrders[tableNum].status = newStatus;
                 appData.activeTableOrders[tableNum].hasNewAddition = false;
                 appData.activeTableOrders[tableNum].source = 'باركود الطاولة';
-                const dbUrl = getCleanDbUrl();
-                try {
-                    await fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            status: newStatus,
-                            hasNewAddition: false,
-                            source: 'باركود الطاولة'
-                        })
-                    });
-                } catch(e) {}
                 saveData();
+                const dbUrl = getCleanDbUrl();
+                fetch(`${dbUrl}/cafeState/activeTableOrders/${tableNum}.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: newStatus,
+                        hasNewAddition: false,
+                        source: 'باركود الطاولة'
+                    })
+                }).catch(() => {});
             }
         }
 
@@ -2245,7 +2189,7 @@
             qrContainer.innerHTML = qrHtml;
         }
 
-        // ==================== سجل المبيعات، الفاتورة الحرارية، وتحويل PDF ====================
+        // ==================== سجل المبيعات، الفاتورة الحرارية، وتحويل PDF السريع ====================
         function renderOrdersHistory() {
             const ordersList = Array.isArray(appData.completedOrders) ? appData.completedOrders : Object.values(appData.completedOrders || {});
             const totalSales = ordersList.reduce((s, o) => s + (o.total || 0), 0);
@@ -2287,6 +2231,7 @@
         }
 
         function showReceiptModal(order) {
+            currentReceiptOrder = order;
             document.getElementById('rec-cafe-name').innerText = appData.cafeName;
             document.getElementById('rec-cafe-sub').innerText = appData.cafeSub;
             document.getElementById('rec-daily-id').innerText = '#' + (order.dailyNumber || order.id);
@@ -2329,32 +2274,172 @@
             document.getElementById('receipt-modal').classList.remove('hidden');
         }
 
+        // توليد ملف PDF فوري خلال 0.05 ثانية بدون تعليق المتصفح
         function downloadReceiptPDF() {
-            const element = document.getElementById('receipt-modal-content');
-            const orderId = document.getElementById('rec-daily-id').innerText.replace('#', '');
-            const opt = {
-                margin:       4,
-                filename:     `فاتورة_${appData.cafeName}_طلب_${orderId}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: [80, 170], orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
+            if (!currentReceiptOrder) return;
+            const order = currentReceiptOrder;
+            const orderId = order.dailyNumber || order.id;
+            const items = Array.isArray(order.items) ? order.items : [];
+
+            const width = 560;
+            let calcHeight = 310;
+            if (order.carNumber) calcHeight += 36;
+            if (order.note) calcHeight += 36;
+            items.forEach(it => {
+                calcHeight += it.customization ? 64 : 40;
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = calcHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.direction = 'rtl';
+            ctx.textBaseline = 'middle';
+
+            // خلفية الفاتورة البيضاء
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, calcHeight);
+
+            // إطار الفاتورة المتقطع
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 6]);
+            ctx.strokeRect(16, 16, width - 32, calcHeight - 32);
+
+            let y = 52;
+
+            // اسم الكافيه والوصف
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '800 26px Tajawal, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(appData.cafeName || 'مسرى كافيه', width / 2, y);
+
+            y += 30;
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 16px Tajawal, sans-serif';
+            ctx.fillText(appData.cafeSub || '', width / 2, y);
+
+            // خط فاصل
+            y += 24;
+            ctx.beginPath();
+            ctx.moveTo(32, y);
+            ctx.lineTo(width - 32, y);
+            ctx.stroke();
+
+            // رقم الطلب والنوع
+            y += 28;
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '700 18px Tajawal, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(`طلب رقم: #${orderId}`, width - 36, y);
+            ctx.textAlign = 'left';
+            ctx.fillText(order.type || '', 36, y);
+
+            // السيارة والملاحظات إن وجدت
+            if (order.carNumber) {
+                y += 32;
+                ctx.fillStyle = '#92400e';
+                ctx.font = '700 16px Tajawal, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(`السيارة / العميل: ${order.carNumber}`, width - 36, y);
+            }
+            if (order.note) {
+                y += 32;
+                ctx.fillStyle = '#334155';
+                ctx.font = '500 15px Tajawal, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(`ملاحظة: ${order.note}`, width - 36, y);
+            }
+
+            // الوقت وطريقة الدفع
+            y += 30;
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 15px Tajawal, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(order.time || '', width - 36, y);
+            ctx.textAlign = 'left';
+            ctx.fillText(`الدفع: ${order.paymentMethod || 'نقد'}`, 36, y);
+
+            // خط فاصل قبل الأصناف
+            y += 22;
+            ctx.beginPath();
+            ctx.moveTo(32, y);
+            ctx.lineTo(width - 32, y);
+            ctx.stroke();
+
+            // قائمة الأصناف
+            items.forEach(it => {
+                y += 30;
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '700 17px Tajawal, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${it.name} × ${it.qty}`, width - 36, y);
+
+                ctx.textAlign = 'left';
+                ctx.fillText(`${(it.price * it.qty).toFixed(3)} ر.ع`, 36, y);
+
+                if (it.customization) {
+                    y += 24;
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '500 14px Tajawal, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`↳ ${it.customization}`, width - 44, y);
+                }
+                y += 8;
+            });
+
+            // خط فاصل قبل المجموع
+            y += 18;
+            ctx.beginPath();
+            ctx.moveTo(32, y);
+            ctx.lineTo(width - 32, y);
+            ctx.stroke();
+
+            // الإجمالي الكلي
+            y += 32;
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '800 22px Tajawal, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText('الإجمالي الكلي:', width - 36, y);
+            ctx.fillStyle = '#d97706';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${Number(order.total || 0).toFixed(3)} ر.ع`, 36, y);
+
+            // تذييل الفاتورة
+            y += 38;
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '500 15px Tajawal, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('شكراً لزيارتكم! نتشرف بحضوركم دائماً', width / 2, y);
+
+            try {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const pdfWidthMm = 80;
+                const pdfHeightMm = Math.round((calcHeight / width) * pdfWidthMm);
+                const jsPDFClass = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+                const pdf = new jsPDFClass({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [pdfWidthMm, pdfHeightMm]
+                });
+                pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidthMm, pdfHeightMm);
+                pdf.save(`فاتورة_${appData.cafeName}_طلب_${orderId}.pdf`);
+            } catch (err) {
+                alert("تعذر حفظ ملف PDF، يمكنك استخدام زر الطباعة بدلاً منه.");
+            }
         }
 
         function closeReceiptModal() {
             document.getElementById('receipt-modal').classList.add('hidden');
         }
 
-        async function clearSalesHistory() {
+        function clearSalesHistory() {
             if (confirm("هل أنت متأكد من تصفير سجل المبيعات بالكامل سحابياً؟")) {
                 appData.completedOrders = [];
                 if (appData.dailySequence) appData.dailySequence.currentCount = 0;
-                const dbUrl = getCleanDbUrl();
-                try {
-                    await fetch(`${dbUrl}/cafeState/completedOrders.json`, { method: 'DELETE' });
-                } catch(e) {}
                 saveData();
+                const dbUrl = getCleanDbUrl();
+                fetch(`${dbUrl}/cafeState/completedOrders.json`, { method: 'DELETE' }).catch(() => {});
             }
         }
 
