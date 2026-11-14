@@ -1756,8 +1756,9 @@
             document.getElementById('car-number-wrapper').classList.toggle('hidden', type !== 'takeaway');
         }
 
-        function renderTableSelects() {
+                function renderTableSelects() {
             const posSelect = document.getElementById('order-table');
+            const currentVal = posSelect.value; // حفظ الطاولة المحددة حالياً قبل التحديث
             let options = '';
             const activeOrders = appData.activeTableOrders || {};
             for (let i = 1; i <= appData.tablesCount; i++) {
@@ -1765,7 +1766,13 @@
                 options += `<option value="${i}">طاولة ${i}${isBusy}</option>`;
             }
             posSelect.innerHTML = options;
+            
+            // الحفاظ على اختيار الكاشير للطاولة الحالية وعدم إعادتها لطاولة 1
+            if (currentVal && document.querySelector(`#order-table option[value="${currentVal}"]`)) {
+                posSelect.value = currentVal;
+            }
         }
+
 
         // تعليق الطلب للتحضير (يدعم الطاولات + طلبات السيارات الخارجية)
         async function submitOrder(status) {
